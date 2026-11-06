@@ -14,35 +14,62 @@ export function WritingPractice() {
 
   const currentLetter = wianjanaLetters[selectedIndex];
 
-  // Initialize canvas
-  useEffect(() => {
+  // Safeguard #3: High-DPI canvas scaling — dynamically scale using
+  // devicePixelRatio so Retina/4K screens don't render blurry.
+  const setupCanvas = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const dpr = window.devicePixelRatio || 1;
     const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
+
+    // Set canvas pixel dimensions to match device resolution
+    canvas.width = rect.width * dpr;
+    canvas.height = rect.height * dpr;
 
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    // Scale context so CSS pixels map to device pixels 1:1
+    ctx.scale(dpr, dpr);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     ctx.lineWidth = 4;
 
     contextRef.current = ctx;
+    return ctx;
+  };
+
+  // Initialize canvas
+  useEffect(() => {
+    const ctx = setupCanvas();
+    if (!ctx) return;
 
     // Draw guide path
     drawGuidePath(ctx, currentLetter.strokes);
+
+    // Re-setup on resize / orientation change / dpr change
+    const handleResize = () => {
+      const newCtx = setupCanvas();
+      if (newCtx) drawGuidePath(newCtx, currentLetter.strokes);
+    };
+
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('orientationchange', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('orientationchange', handleResize);
+    };
   }, [currentLetter]);
 
   const drawGuidePath = (ctx: CanvasRenderingContext2D, _pathData: string) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const canvasRect = canvas.getBoundingClientRect();
+
+    // Clear canvas (in CSS pixel space — context is already DPR-scaled)
+    ctx.clearRect(0, 0, canvasRect.width, canvasRect.height);
 
     // Parse and draw SVG path as guide (simplified - draws it in light gray)
     ctx.strokeStyle = 'rgba(180, 83, 9, 0.2)'; // Faint terracotta
@@ -54,8 +81,7 @@ export function WritingPractice() {
     ctx.fillStyle = 'rgba(180, 83, 9, 0.15)';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const rect = canvas.getBoundingClientRect();
-    ctx.fillText(currentLetter.aksara, rect.width / 2, rect.height / 2);
+    ctx.fillText(currentLetter.aksara, canvasRect.width / 2, canvasRect.height / 2);
   };
 
   const startDrawing = (x: number, y: number) => {

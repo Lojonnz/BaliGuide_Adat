@@ -79,6 +79,7 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
 
       {/* Main content */}
       <main
+        className="layout-main"
         style={{
           flex: 1,
           padding: '16px',

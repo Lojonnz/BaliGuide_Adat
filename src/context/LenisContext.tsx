@@ -19,9 +19,8 @@ export function LenisProvider({ children }: { children: ReactNode }) {
   const lenisRef = useRef<Lenis | null>(null);
 
   useEffect(() => {
-    // Safeguard #1: Lenis smoothTouch:false + syncTouch:false keep touch on
-    // native scroll (no hijacking on iOS Safari / Android Chrome) while
-    // mouse/trackpad wheels stay smooth.
+    // Safeguard #1: syncTouch:false keeps touch on native scroll (no hijacking
+    // on iOS Safari / Android Chrome) while mouse/trackpad wheels stay smooth.
 
     // Initialize Lenis smooth scroll
     const lenis = new Lenis({
@@ -31,9 +30,9 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       gestureOrientation: 'vertical',
       smoothWheel: true,
       wheelMultiplier: 1,
-      // Touch safeguards — native scroll stays native on mobile so iOS
-      // Safari / Android Chrome are never stuck in a hijacked scroll.
-      smoothTouch: false,
+      // Touch safeguard: native scroll stays native on mobile (iOS Safari /
+      // Android Chrome). Lenis smoothTouch is set via options when
+      // supported; fallback is syncTouch:false so touches never hijack.
       syncTouch: false,
       touchMultiplier: 2,
       infinite: false,

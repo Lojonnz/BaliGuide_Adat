@@ -53,13 +53,9 @@ export function TempleMap() {
         center={[-8.4095, 115.1889]}
         zoom={9}
         style={{ width: '100%', height: '100%' }}
-        // Safeguard #4: mobile gesture handling — two-finger zoom,
-        // one-finger page scroll passes through. scrollWheelZoom is
-        // disabled by default and enabled after an explicit tap so
-        // mouse/trackpad users still get zoom on click.
+        // Safeguard #4: scrollWheelZoom disabled so mobile users can scroll
+        // the page without getting trapped in the map. touchZoom stays on.
         scrollWheelZoom={false}
-        twoFingerZoom={true}
-        tap={true}
         touchZoom={true}
         dragging={true}
         doubleClickZoom={true}
