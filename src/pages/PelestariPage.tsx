@@ -50,44 +50,61 @@ export function PelestariPage() {
         </header>
 
         {/* Tab navigation */}
-        <div style={{
-          display: 'flex',
-          gap: '0.5rem',
-          marginBottom: '2rem',
-          borderBottom: '2px solid var(--color-border)',
-          overflowX: 'auto',
-          paddingBottom: '0.5rem',
-        }}>
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              style={{
-                padding: '0.75rem 1.5rem',
-                backgroundColor: activeTab === tab.id ? 'var(--color-primary)' : 'transparent',
-                color: activeTab === tab.id ? 'white' : 'var(--color-text)',
-                border: 'none',
-                borderRadius: 'var(--radius)',
-                cursor: 'pointer',
-                fontSize: '0.9375rem',
-                fontWeight: '500',
-                minHeight: '44px',
-                whiteSpace: 'nowrap',
-                transition: 'all 0.2s ease',
-              }}
-            >
-              {t(tab.labelEn, tab.labelId)}
-            </button>
-          ))}
+        <div
+          role="tablist"
+          aria-label={t('Pelestari sections', 'Bagian Pelestari')}
+          style={{
+            display: 'flex',
+            gap: '0.5rem',
+            marginBottom: '2rem',
+            borderBottom: '2px solid var(--color-border)',
+            overflowX: 'auto',
+            paddingBottom: '0.5rem',
+          }}
+        >
+          {tabs.map(tab => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`pelestari-panel-${tab.id}`}
+                id={`pelestari-tab-${tab.id}`}
+                onClick={() => setActiveTab(tab.id)}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  backgroundColor: isActive ? 'var(--color-primary)' : 'transparent',
+                  color: isActive ? 'white' : 'var(--color-text)',
+                  border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
+                  borderRadius: 'var(--radius)',
+                  cursor: 'pointer',
+                  fontSize: '0.9375rem',
+                  fontWeight: isActive ? 700 : 500,
+                  minHeight: '44px',
+                  whiteSpace: 'nowrap',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {t(tab.labelEn, tab.labelId)}
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab content */}
-        <div style={{
-          backgroundColor: 'var(--color-surface)',
-          borderRadius: 'var(--radius)',
-          padding: '2rem 1rem',
-          boxShadow: 'var(--shadow)',
-        }}>
+        <div
+          role="tabpanel"
+          id={`pelestari-panel-${activeTab}`}
+          aria-labelledby={`pelestari-tab-${activeTab}`}
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            borderRadius: 'var(--radius)',
+            padding: '2rem 1rem',
+            boxShadow: 'var(--shadow)',
+          }}
+        >
           {activeTab === 'transliteration' && <TransliterationTool />}
           {activeTab === 'practice' && <WritingPractice />}
           {activeTab === 'archive' && <HeritageArchive />}

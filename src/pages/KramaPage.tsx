@@ -53,6 +53,8 @@ export function KramaPage() {
 
         {/* Section Toggle */}
         <div
+          role="tablist"
+          aria-label={t('Krama sections', 'Bagian Krama')}
           style={{
             display: 'flex',
             gap: '8px',
@@ -63,58 +65,51 @@ export function KramaPage() {
             boxShadow: 'var(--shadow)',
           }}
         >
-          <button
-            onClick={() => setActiveSection('banjar')}
-            style={{
-              flex: 1,
-              padding: '14px 20px',
-              background:
-                activeSection === 'banjar' ? 'var(--color-primary)' : 'transparent',
-              color: activeSection === 'banjar' ? '#FFFFFF' : 'var(--color-text)',
-              border: 'none',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              fontSize: '15px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s ease',
-              minHeight: '44px',
-            }}
-          >
-            <Building2 size={20} />
-            {t('Smart Banjar', 'Banjar Pintar')}
-          </button>
-          <button
-            onClick={() => setActiveSection('subak')}
-            style={{
-              flex: 1,
-              padding: '14px 20px',
-              background:
-                activeSection === 'subak' ? 'var(--color-primary)' : 'transparent',
-              color: activeSection === 'subak' ? '#FFFFFF' : 'var(--color-text)',
-              border: 'none',
-              borderRadius: 'var(--radius-sm)',
-              cursor: 'pointer',
-              fontSize: '15px',
-              fontWeight: '600',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              transition: 'all 0.2s ease',
-              minHeight: '44px',
-            }}
-          >
-            <Droplets size={20} />
-            {t('Subak & Marketplace', 'Subak & Pasar')}
-          </button>
+          {([
+            { id: 'banjar' as const, icon: Building2, en: 'Smart Banjar', idLabel: 'Banjar Pintar' },
+            { id: 'subak' as const, icon: Droplets, en: 'Subak & Marketplace', idLabel: 'Subak & Pasar' },
+          ] as const).map((sec) => {
+            const isActive = activeSection === sec.id;
+            const Icon = sec.icon;
+            return (
+              <button
+                key={sec.id}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                aria-controls={`krama-panel-${sec.id}`}
+                id={`krama-tab-${sec.id}`}
+                onClick={() => setActiveSection(sec.id)}
+                style={{
+                  flex: 1,
+                  padding: '14px 20px',
+                  background: isActive ? 'var(--color-primary)' : 'transparent',
+                  color: isActive ? '#FFFFFF' : 'var(--color-text)',
+                  border: `1px solid ${isActive ? 'var(--color-primary)' : 'transparent'}`,
+                  borderRadius: 'var(--radius-sm)',
+                  cursor: 'pointer',
+                  fontSize: '15px',
+                  fontWeight: isActive ? 700 : 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                  transition: 'all 0.2s ease',
+                  minHeight: '44px',
+                }}
+              >
+                <Icon size={20} aria-hidden="true" />
+                {t(sec.en, sec.idLabel)}
+              </button>
+            );
+          })}
         </div>
 
         {/* Content Area */}
         <div
+          role="tabpanel"
+          id={`krama-panel-${activeSection}`}
+          aria-labelledby={`krama-tab-${activeSection}`}
           style={{
             background: 'var(--color-surface)',
             border: '1px solid var(--color-border)',

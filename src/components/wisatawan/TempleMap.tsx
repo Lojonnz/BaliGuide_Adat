@@ -108,10 +108,12 @@ export function TempleMap() {
       {/* Legend Overlay with Glass Card */}
       <div
         ref={legendRef}
+        aria-label={t('Zone layers legend', 'Legenda lapisan zona')}
         className="glass-card absolute bottom-5 right-5 p-4 rounded-xl"
         style={{
           zIndex: 1000,
           minWidth: '220px',
+          maxWidth: 'calc(100vw - 40px)',
         }}
       >
         <h4

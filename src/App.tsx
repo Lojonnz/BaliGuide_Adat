@@ -36,14 +36,20 @@ function App() {
           <Suspense
             fallback={
               <div
+                role="status"
+                aria-live="polite"
+                aria-label="Loading… / Memuat…"
                 style={{
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
+                  gap: '16px',
                   minHeight: '200px',
                 }}
               >
                 <div
+                  aria-hidden="true"
                   style={{
                     width: '40px',
                     height: '40px',
@@ -53,6 +59,7 @@ function App() {
                     animation: 'spin 0.8s linear infinite',
                   }}
                 />
+                <span className="sr-only">Loading…</span>
                 <style>{`
                   @keyframes spin {
                     to { transform: rotate(360deg); }

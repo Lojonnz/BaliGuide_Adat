@@ -75,9 +75,10 @@ export function GeofenceHeader({ onSimulateEntry }: Props) {
               </h3>
 
               {/* Status Indicator */}
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-4" role="status" aria-label={t(statusLabels[temple.status].en, statusLabels[temple.status].id)}>
                 <PulseGlow color={statusColors[temple.status]}>
                   <div
+                    aria-hidden="true"
                     style={{
                       width: '12px',
                       height: '12px',
@@ -89,7 +90,7 @@ export function GeofenceHeader({ onSimulateEntry }: Props) {
                 <span
                   style={{
                     fontSize: '14px',
-                    fontWeight: 600,
+                    fontWeight: 700,
                     color: statusColors[temple.status],
                   }}
                 >
@@ -99,12 +100,15 @@ export function GeofenceHeader({ onSimulateEntry }: Props) {
 
               {/* Simulate Entry Button */}
               <button
+                type="button"
                 onClick={() => onSimulateEntry(temple)}
+                aria-label={`${t('Simulate entry to', 'Simulasi masuk ke')} ${t(temple.name, temple.nameId)}`}
                 className="btn-primary"
                 style={{
                   width: '100%',
                   fontSize: '14px',
                   padding: '12px 20px',
+                  minHeight: '44px',
                 }}
               >
                 {t('Simulate Entry', 'Simulasi Masuk')}

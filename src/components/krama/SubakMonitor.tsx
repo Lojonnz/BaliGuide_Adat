@@ -37,16 +37,13 @@ export function SubakMonitor() {
     return () => clearInterval(interval);
   }, []);
 
-  const getAlertColor = (level: 'normal' | 'warning' | 'critical') => {
-    switch (level) {
-      case 'normal':
-        return '#059669';
-      case 'warning':
-        return '#D97706';
-      case 'critical':
-        return '#DC2626';
-    }
+  const alertVar: Record<string, string> = {
+    normal: 'var(--color-open)',
+    warning: 'var(--color-restricted)',
+    critical: 'var(--color-closed)',
   };
+
+  const getAlertColor = (level: 'normal' | 'warning' | 'critical') => alertVar[level];
 
   const getProductIcon = (productName: string) => {
     if (productName.toLowerCase().includes('coffee')) return Coffee;
@@ -97,15 +94,6 @@ export function SubakMonitor() {
                   animation: isAlert ? 'pulse 2s ease-in-out infinite' : 'none',
                 }}
               >
-                <style>
-                  {`
-                    @keyframes pulse {
-                      0%, 100% { opacity: 1; }
-                      50% { opacity: 0.85; }
-                    }
-                  `}
-                </style>
-
                 <div
                   style={{
                     display: 'flex',
@@ -143,19 +131,27 @@ export function SubakMonitor() {
 
                   {isAlert && (
                     <div
+                      role="status"
+                      aria-live="polite"
+                      aria-label={`${t(entry.gateName, entry.gateNameId)}: ${
+                        entry.alertLevel === 'warning'
+                          ? t('Warning', 'Peringatan')
+                          : t('Critical', 'Kritis')
+                      }`}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
                         gap: '6px',
                         padding: '6px 12px',
-                        background: getAlertColor(entry.alertLevel) + '20',
+                        background: 'rgba(220,38,38,0.12)',
                         color: getAlertColor(entry.alertLevel),
+                        border: `1px solid ${getAlertColor(entry.alertLevel)}`,
                         borderRadius: 'var(--radius-sm)',
                         fontSize: '13px',
-                        fontWeight: '600',
+                        fontWeight: 700,
                       }}
                     >
-                      <AlertTriangle size={16} />
+                      <AlertTriangle size={16} aria-hidden="true" />
                       {entry.alertLevel === 'warning'
                         ? t('Warning', 'Peringatan')
                         : t('Critical', 'Kritis')}
@@ -180,6 +176,11 @@ export function SubakMonitor() {
                     </span>
                   </div>
                   <div
+                    role="progressbar"
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={Math.round(Math.min(flowPercentage, 100))}
+                    aria-label={t('Flow vs quota', 'Aliran vs kuota')}
                     style={{
                       width: '100%',
                       height: '12px',
@@ -334,11 +335,12 @@ export function SubakMonitor() {
                     display: 'inline-flex',
                     alignSelf: 'flex-start',
                     padding: '4px 12px',
-                    background: product.available ? '#05966920' : '#DC262620',
-                    color: product.available ? '#059669' : '#DC2626',
+                    background: product.available ? 'rgba(5,150,105,0.12)' : 'rgba(220,38,38,0.12)',
+                    color: product.available ? 'var(--color-open)' : 'var(--color-closed)',
+                    border: `1px solid ${product.available ? 'var(--color-open)' : 'var(--color-closed)'}`,
                     borderRadius: 'var(--radius-sm)',
                     fontSize: '13px',
-                    fontWeight: '600',
+                    fontWeight: 700,
                   }}
                 >
                   {product.available

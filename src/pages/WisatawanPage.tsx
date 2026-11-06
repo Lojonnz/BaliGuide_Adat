@@ -14,7 +14,7 @@ export function WisatawanPage() {
     <div className="min-h-screen" style={{ background: 'var(--color-bg)' }}>
       {/* Cinematic Hero Section */}
       <section className="relative overflow-hidden" style={{ padding: '80px 16px 60px' }}>
-        <div className="absolute inset-0 grid-bg" style={{ opacity: 0.2 }} />
+        <div aria-hidden="true" className="absolute inset-0 grid-bg" style={{ opacity: 0.2, pointerEvents: 'none' }} />
 
         <FadeIn delay={0.2}>
           <div className="max-w-6xl mx-auto">
@@ -38,13 +38,13 @@ export function WisatawanPage() {
       </FadeIn>
 
       {/* Temple Map Section */}
-      <section style={{ minHeight: '600px', padding: '0 16px 80px' }}>
+      <section style={{ padding: '0 16px 80px' }}>
         <FadeIn delay={0.6}>
           <div className="glass-card" style={{ padding: '24px', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
             <h2 className="editorial-heading" style={{ marginBottom: '20px', fontSize: '2rem' }}>
               {t('Interactive Temple Map', 'Peta Pura Interaktif')}
             </h2>
-            <div style={{ height: '600px', borderRadius: 'var(--radius)' }}>
+            <div style={{ height: 'min(600px, 60vh)', minHeight: '320px', borderRadius: 'var(--radius)', position: 'relative', zIndex: 1 }}>
               <TempleMap />
             </div>
           </div>

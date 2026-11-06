@@ -161,9 +161,9 @@ export function TransliterationTool() {
             flexDirection: 'column',
             gap: '0.5rem'
           }}>
-            <label style={{
+            <label htmlFor="transliteration-input" style={{
               fontSize: '0.875rem',
-              fontWeight: '500',
+              fontWeight: 600,
               color: 'var(--color-text)'
             }}>
               {direction === 'latin-to-aksara'
@@ -171,6 +171,8 @@ export function TransliterationTool() {
                 : t('Aksara Bali', 'Aksara Bali')}
             </label>
             <textarea
+              id="transliteration-input"
+              aria-describedby="transliteration-input-count"
               value={input}
               onChange={(e) => handleInputChange(e.target.value)}
               placeholder={direction === 'latin-to-aksara'
@@ -190,7 +192,7 @@ export function TransliterationTool() {
                 boxSizing: 'border-box',
               }}
             />
-            <div style={{
+            <div id="transliteration-input-count" aria-live="polite" style={{
               fontSize: '0.75rem',
               color: 'var(--color-text-muted)'
             }}>
@@ -204,9 +206,9 @@ export function TransliterationTool() {
             flexDirection: 'column',
             gap: '0.5rem'
           }}>
-            <label style={{
+            <label htmlFor="transliteration-output" style={{
               fontSize: '0.875rem',
-              fontWeight: '500',
+              fontWeight: 600,
               color: 'var(--color-text)'
             }}>
               {direction === 'latin-to-aksara'
@@ -214,7 +216,11 @@ export function TransliterationTool() {
                 : t('Latin Script', 'Tulisan Latin')}
             </label>
             <div
+              id="transliteration-output"
               ref={outputRef}
+              role="status"
+              aria-live="polite"
+              aria-label={t('Transliteration output', 'Hasil transliterasi')}
               style={{
                 width: '100%',
                 minHeight: '150px',
@@ -245,19 +251,23 @@ export function TransliterationTool() {
                 {output.length} {t('characters', 'karakter')}
               </div>
               <button
+                type="button"
                 onClick={copyToClipboard}
                 disabled={!output}
+                aria-disabled={!output}
+                aria-label={t('Copy output to clipboard', 'Salin hasil ke papan klip')}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.5rem',
                   padding: '0.5rem 0.75rem',
                   backgroundColor: output ? 'var(--color-amber)' : 'var(--color-surface)',
-                  color: output ? 'white' : 'var(--color-text-muted)',
-                  border: 'none',
+                  color: output ? '#1F2937' : 'var(--color-text-muted)',
+                  border: '1px solid transparent',
                   borderRadius: 'var(--radius-sm)',
                   cursor: output ? 'pointer' : 'not-allowed',
                   fontSize: '0.875rem',
+                  fontWeight: 600,
                   minHeight: '44px',
                 }}
               >

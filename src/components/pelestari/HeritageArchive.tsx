@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Box, BookOpen, Image as ImageIcon, X, Download, Share2, Search } from 'lucide-react';
+import { Box, BookOpen, Image as ImageIcon, Download, Share2, Search } from 'lucide-react';
 import { useI18n } from '../../context/I18nContext';
 import { heritageItems } from '../../data';
 import type { HeritageItem } from '../../types';
+import { Modal } from '../common/Modal';
 
 type FilterType = 'all' | '3d-model' | 'lontar' | 'photo';
 
@@ -80,6 +81,7 @@ export function HeritageArchive() {
       <div style={{ position: 'relative' }}>
         <Search
           size={20}
+          aria-hidden="true"
           style={{
             position: 'absolute',
             left: '0.75rem',
@@ -89,11 +91,16 @@ export function HeritageArchive() {
             pointerEvents: 'none',
           }}
         />
+        <label htmlFor="heritage-search" className="sr-only">
+          {t('Search archive', 'Cari arsip')}
+        </label>
         <input
-          type="text"
+          id="heritage-search"
+          type="search"
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder={t('Search archive...', 'Cari arsip...')}
+          aria-label={t('Search archive', 'Cari arsip')}
           style={{
             width: '100%',
             padding: '0.75rem 0.75rem 0.75rem 2.75rem',
@@ -103,41 +110,47 @@ export function HeritageArchive() {
             fontSize: '1rem',
             color: 'var(--color-text)',
             boxSizing: 'border-box',
+            minHeight: '44px',
           }}
         />
       </div>
 
       {/* Filter buttons */}
-      <div style={{
+      <div role="group" aria-label={t('Filter by type', 'Filter berdasarkan tipe')} style={{
         display: 'flex',
         gap: '0.5rem',
         flexWrap: 'wrap'
       }}>
-        {(['all', '3d-model', 'lontar', 'photo'] as FilterType[]).map(filterType => (
-          <button
-            key={filterType}
-            onClick={() => setFilter(filterType)}
-            style={{
-              padding: '0.5rem 1rem',
-              backgroundColor: filter === filterType ? 'var(--color-primary)' : 'var(--color-surface)',
-              color: filter === filterType ? 'white' : 'var(--color-text)',
-              border: filter === filterType ? 'none' : '1px solid var(--color-border)',
-              borderRadius: 'var(--radius)',
-              cursor: 'pointer',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              minHeight: '44px',
-            }}
-          >
-            {filterType === 'all'
-              ? t('All', 'Semua')
-              : getTypeLabel(filterType as HeritageItem['type'])}
-          </button>
-        ))}
+        {(['all', '3d-model', 'lontar', 'photo'] as FilterType[]).map(filterType => {
+          const isActive = filter === filterType;
+          return (
+            <button
+              key={filterType}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => setFilter(filterType)}
+              style={{
+                padding: '0.5rem 1rem',
+                backgroundColor: isActive ? 'var(--color-primary)' : 'var(--color-surface)',
+                color: isActive ? 'white' : 'var(--color-text)',
+                border: `1px solid ${isActive ? 'var(--color-primary)' : 'var(--color-border)'}`,
+                borderRadius: 'var(--radius)',
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: isActive ? 700 : 500,
+                minHeight: '44px',
+              }}
+            >
+              {filterType === 'all'
+                ? t('All', 'Semua')
+                : getTypeLabel(filterType as HeritageItem['type'])}
+            </button>
+          );
+        })}
       </div>
 
       {/* Results count */}
-      <div style={{
+      <div role="status" aria-live="polite" style={{
         fontSize: '0.875rem',
         color: 'var(--color-text-muted)'
       }}>
@@ -268,7 +281,9 @@ export function HeritageArchive() {
 
                 {/* View details button */}
                 <button
+                  type="button"
                   onClick={() => setSelectedItem(item)}
+                  aria-label={`${t('View details for', 'Lihat detail untuk')} ${title}`}
                   style={{
                     padding: '0.75rem',
                     backgroundColor: 'var(--color-primary)',
@@ -277,7 +292,7 @@ export function HeritageArchive() {
                     borderRadius: 'var(--radius)',
                     cursor: 'pointer',
                     fontSize: '0.875rem',
-                    fontWeight: '500',
+                    fontWeight: 700,
                     minHeight: '44px',
                     marginTop: '0.5rem',
                   }}
@@ -292,200 +307,131 @@ export function HeritageArchive() {
 
       {/* No results */}
       {filteredItems.length === 0 && (
-        <div style={{
+        <div role="status" style={{
           padding: '3rem',
           textAlign: 'center',
           color: 'var(--color-text-muted)',
+          background: 'var(--color-surface)',
+          border: '1px dashed var(--color-border)',
+          borderRadius: 'var(--radius)',
         }}>
-          {t('No items found', 'Tidak ada item ditemukan')}
+          {t(
+            'No items match your search. Try a different term or clear filters.',
+            'Tidak ada item yang cocok dengan pencarian Anda. Coba istilah lain atau hapus filter.'
+          )}
         </div>
       )}
 
-      {/* Modal */}
+      {/* Detail modal — uses shared accessible Modal */}
       {selectedItem && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        <Modal
+          title={lang === 'en' ? selectedItem.title : selectedItem.titleId}
+          subtitle={getTypeLabel(selectedItem.type)}
+          onClose={() => setSelectedItem(null)}
+          maxWidth={600}
+        >
+          {/* Large placeholder image */}
+          <div role="img" aria-label={lang === 'en' ? selectedItem.title : selectedItem.titleId} style={{
+            width: '100%',
+            height: '300px',
+            backgroundColor: getTypeBadgeColor(selectedItem.type).bg,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            padding: '1rem',
-            zIndex: 1000,
-          }}
-          onClick={() => setSelectedItem(null)}
-        >
-          <div
-            style={{
-              backgroundColor: 'var(--color-surface)',
-              borderRadius: 'var(--radius)',
-              maxWidth: '600px',
-              width: '100%',
-              maxHeight: '90vh',
-              overflow: 'auto',
-              boxShadow: 'var(--shadow-lg)',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Modal header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              padding: '1rem',
-              borderBottom: '1px solid var(--color-border)',
-            }}>
-              <h3 style={{
-                margin: 0,
-                fontSize: '1.25rem',
-                fontWeight: '600',
-                color: 'var(--color-text)'
-              }}>
-                {lang === 'en' ? selectedItem.title : selectedItem.titleId}
-              </h3>
-              <button
-                onClick={() => setSelectedItem(null)}
-                style={{
-                  width: '44px',
-                  height: '44px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'transparent',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--color-text)',
-                  borderRadius: 'var(--radius)',
-                }}
-              >
-                <X size={24} />
-              </button>
+            borderRadius: 'var(--radius)',
+            marginBottom: '1.5rem',
+            color: getTypeBadgeColor(selectedItem.type).color,
+          }}>
+            <div aria-hidden="true" style={{ transform: 'scale(3)' }}>
+              {getTypeIcon(selectedItem.type)}
             </div>
+          </div>
 
-            {/* Modal body */}
-            <div style={{ padding: '1.5rem' }}>
-              {/* Large placeholder image */}
-              <div style={{
-                width: '100%',
-                height: '300px',
-                backgroundColor: getTypeBadgeColor(selectedItem.type).bg,
+          {/* Full description */}
+          <p style={{
+            margin: '0 0 1rem 0',
+            fontSize: '1rem',
+            color: 'var(--color-text)',
+            lineHeight: 1.6,
+          }}>
+            {lang === 'en' ? selectedItem.description : selectedItem.descriptionId}
+          </p>
+
+          {/* Metadata grid */}
+          <dl style={{
+            display: 'grid',
+            gridTemplateColumns: 'auto 1fr',
+            gap: '0.5rem 1rem',
+            fontSize: '0.875rem',
+            padding: '1rem',
+            backgroundColor: 'var(--color-bg)',
+            borderRadius: 'var(--radius)',
+            marginBottom: '1rem',
+            marginTop: 0,
+          }}>
+            <dt style={{ fontWeight: 600, color: 'var(--color-text)' }}>{t('Type', 'Tipe')}</dt>
+            <dd style={{ margin: 0, color: 'var(--color-text-muted)' }}>{getTypeLabel(selectedItem.type)}</dd>
+
+            <dt style={{ fontWeight: 600, color: 'var(--color-text)' }}>{t('Owner', 'Pemilik')}</dt>
+            <dd style={{ margin: 0, color: 'var(--color-text-muted)' }}>{selectedItem.owner}</dd>
+
+            <dt style={{ fontWeight: 600, color: 'var(--color-text)' }}>{t('Year', 'Tahun')}</dt>
+            <dd style={{ margin: 0, color: 'var(--color-text-muted)' }}>{selectedItem.year}</dd>
+
+            <dt style={{ fontWeight: 600, color: 'var(--color-text)' }}>{t('License', 'Lisensi')}</dt>
+            <dd style={{ margin: 0, color: 'var(--color-text-muted)', fontFamily: 'monospace' }}>{selectedItem.license}</dd>
+          </dl>
+
+          {/* Action buttons */}
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              style={{
+                flex: 1,
+                minWidth: '140px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem',
+                backgroundColor: 'var(--color-primary)',
+                color: 'white',
+                border: 'none',
                 borderRadius: 'var(--radius)',
-                marginBottom: '1.5rem',
-                color: getTypeBadgeColor(selectedItem.type).color,
-              }}>
-                <div style={{ transform: 'scale(3)' }}>
-                  {getTypeIcon(selectedItem.type)}
-                </div>
-              </div>
-
-              {/* Full description */}
-              <p style={{
-                margin: '0 0 1rem 0',
-                fontSize: '1rem',
-                color: 'var(--color-text)',
-                lineHeight: 1.6,
-              }}>
-                {lang === 'en' ? selectedItem.description : selectedItem.descriptionId}
-              </p>
-
-              {/* Metadata grid */}
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'auto 1fr',
-                gap: '0.5rem 1rem',
+                cursor: 'pointer',
                 fontSize: '0.875rem',
-                padding: '1rem',
-                backgroundColor: 'var(--color-bg)',
+                fontWeight: 700,
+                minHeight: '44px',
+              }}
+            >
+              <Download size={16} aria-hidden="true" />
+              {t('Download', 'Unduh')}
+            </button>
+            <button
+              type="button"
+              style={{
+                flex: 1,
+                minWidth: '140px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                padding: '0.75rem',
+                backgroundColor: 'var(--color-surface)',
+                color: 'var(--color-text)',
+                border: '1px solid var(--color-border)',
                 borderRadius: 'var(--radius)',
-                marginBottom: '1rem',
-              }}>
-                <div style={{ fontWeight: '600', color: 'var(--color-text)' }}>
-                  {t('Type:', 'Tipe:')}
-                </div>
-                <div style={{ color: 'var(--color-text-muted)' }}>
-                  {getTypeLabel(selectedItem.type)}
-                </div>
-
-                <div style={{ fontWeight: '600', color: 'var(--color-text)' }}>
-                  {t('Owner:', 'Pemilik:')}
-                </div>
-                <div style={{ color: 'var(--color-text-muted)' }}>
-                  {selectedItem.owner}
-                </div>
-
-                <div style={{ fontWeight: '600', color: 'var(--color-text)' }}>
-                  {t('Year:', 'Tahun:')}
-                </div>
-                <div style={{ color: 'var(--color-text-muted)' }}>
-                  {selectedItem.year}
-                </div>
-
-                <div style={{ fontWeight: '600', color: 'var(--color-text)' }}>
-                  {t('License:', 'Lisensi:')}
-                </div>
-                <div style={{
-                  color: 'var(--color-text-muted)',
-                  fontFamily: 'monospace'
-                }}>
-                  {selectedItem.license}
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div style={{ display: 'flex', gap: '0.75rem' }}>
-                <button
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--color-primary)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 'var(--radius)',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    minHeight: '44px',
-                  }}
-                >
-                  <Download size={16} />
-                  {t('Download', 'Unduh')}
-                </button>
-                <button
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem',
-                    backgroundColor: 'var(--color-surface)',
-                    color: 'var(--color-text)',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius)',
-                    cursor: 'pointer',
-                    fontSize: '0.875rem',
-                    fontWeight: '500',
-                    minHeight: '44px',
-                  }}
-                >
-                  <Share2 size={16} />
-                  {t('Share', 'Bagikan')}
-                </button>
-              </div>
-            </div>
+                cursor: 'pointer',
+                fontSize: '0.875rem',
+                fontWeight: 700,
+                minHeight: '44px',
+              }}
+            >
+              <Share2 size={16} aria-hidden="true" />
+              {t('Share', 'Bagikan')}
+            </button>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

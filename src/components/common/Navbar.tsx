@@ -19,6 +19,7 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
   return (
     <nav
       className="navbar-responsive"
+      aria-label={t('Main navigation', 'Navigasi utama')}
       style={{
         background: 'rgba(255, 255, 255, 0.8)',
         backdropFilter: 'blur(12px)',
@@ -37,6 +38,7 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
           <button
             key={gate}
             onClick={() => onGateChange(gate)}
+            aria-current={isActive ? 'page' : undefined}
             style={{
               flex: 1,
               display: 'flex',
@@ -45,7 +47,7 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
               gap: '4px',
               padding: '8px',
               border: 'none',
-              background: 'transparent',
+              background: isActive ? 'var(--color-sand)' : 'transparent',
               color: isActive ? 'var(--color-primary)' : 'var(--color-text-muted)',
               cursor: 'pointer',
               borderRadius: 'var(--radius-sm)',
@@ -58,6 +60,7 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
           >
             {isActive && (
               <div
+                aria-hidden="true"
                 style={{
                   position: 'absolute',
                   top: 0,
@@ -74,12 +77,13 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
               size={24}
               strokeWidth={isActive ? 2.5 : 2}
               style={{ transition: 'all 0.2s ease' }}
+              aria-hidden="true"
             />
             <span
               className="navbar-label"
               style={{
-                fontSize: '11px',
-                fontWeight: isActive ? 600 : 400,
+                fontSize: '12px',
+                fontWeight: isActive ? 700 : 500,
                 transition: 'all 0.2s ease',
               }}
             >

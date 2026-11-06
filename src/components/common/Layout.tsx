@@ -33,6 +33,10 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
         background: 'var(--color-bg)',
       }}
     >
+      <a href="#main-content" className="skip-link">
+        {t('Skip to main content', 'Lewati ke konten utama')}
+      </a>
+
       {/* Header */}
       <header
         style={{
@@ -64,8 +68,9 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
           <p
             style={{
               margin: '2px 0 0',
-              fontSize: '12px',
-              color: 'var(--color-text-muted)',
+              fontSize: '13px',
+              fontWeight: 500,
+              color: 'var(--color-text)',
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -77,14 +82,16 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
         <LanguageToggle />
       </header>
 
-      {/* Main content */}
+      {/* Main content — let Lenis own the page scroll; do NOT set overflowY
+          on <main> or we get double scroll containers that fight each other
+          and break ScrollTrigger pinning/measurements. */}
       <main
+        id="main-content"
         className="layout-main"
         style={{
           flex: 1,
           padding: '16px',
-          paddingBottom: 'calc(16px + 68px)', // Account for fixed navbar
-          overflowY: 'auto',
+          paddingBottom: 'calc(16px + 68px)',
         }}
       >
         {children}

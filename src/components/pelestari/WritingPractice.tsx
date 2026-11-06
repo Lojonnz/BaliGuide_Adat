@@ -185,14 +185,15 @@ export function WritingPractice() {
 
       {/* Letter selection */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <label style={{
+        <label htmlFor="letter-select" style={{
           fontSize: '0.875rem',
-          fontWeight: '500',
+          fontWeight: 600,
           color: 'var(--color-text)'
         }}>
           {t('Select Letter', 'Pilih Huruf')}
         </label>
         <select
+          id="letter-select"
           value={selectedIndex}
           onChange={(e) => handleLetterSelect(Number(e.target.value))}
           style={{
@@ -245,16 +246,19 @@ export function WritingPractice() {
 
       {/* Canvas area */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-        <label style={{
+        <span id="trace-label" style={{
           fontSize: '0.875rem',
-          fontWeight: '500',
+          fontWeight: 600,
           color: 'var(--color-text)'
         }}>
           {t('Trace the letter', 'Jiplak hurufnya')}
-        </label>
+        </span>
         <div style={{ position: 'relative' }}>
           <canvas
             ref={canvasRef}
+            role="img"
+            aria-label={t('Canvas for tracing the selected Aksara Bali letter', 'Kanvas untuk menjiplak huruf Aksara Bali yang dipilih')}
+            aria-describedby="trace-label"
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}
@@ -292,7 +296,7 @@ export function WritingPractice() {
 
       {/* Score display */}
       {score !== null && (
-        <div style={{
+        <div role="status" aria-live="polite" style={{
           padding: '1rem',
           backgroundColor: score > 80 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(245, 158, 11, 0.1)',
           border: `2px solid ${score > 80 ? 'rgb(34, 197, 94)' : 'rgb(245, 158, 11)'}`,

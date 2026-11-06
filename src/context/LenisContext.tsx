@@ -22,13 +22,16 @@ export function LenisProvider({ children }: { children: ReactNode }) {
     // Safeguard #1: syncTouch:false keeps touch on native scroll (no hijacking
     // on iOS Safari / Android Chrome) while mouse/trackpad wheels stay smooth.
 
+    // Respect reduced motion: disable Lenis smoothing entirely
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
     // Initialize Lenis smooth scroll
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: prefersReduced ? 0 : 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // easeOutExpo
       orientation: 'vertical',
       gestureOrientation: 'vertical',
-      smoothWheel: true,
+      smoothWheel: !prefersReduced,
       wheelMultiplier: 1,
       // Touch safeguard: native scroll stays native on mobile (iOS Safari /
       // Android Chrome). Lenis smoothTouch is set via options when
@@ -43,15 +46,16 @@ export function LenisProvider({ children }: { children: ReactNode }) {
     // Connect Lenis to GSAP ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
 
-    gsap.ticker.add((time) => {
-      lenis.raf(time * 1000);
-    });
+    const tick = (time: number) => lenis.raf(time * 1000);
+    gsap.ticker.add(tick);
 
     gsap.ticker.lagSmoothing(0);
 
-    // Cleanup
+    // Cleanup — also remove the named ticker callback so HMR/StrictMode
+    // double-mount doesn't leak RAF loops.
     return () => {
       lenis.destroy();
+      gsap.ticker.remove(tick);
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
     };
   }, []);

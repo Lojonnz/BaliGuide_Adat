@@ -1,41 +1,41 @@
 import { Globe } from 'lucide-react';
 import { useI18n } from '../../context/I18nContext';
 
+
 export function LanguageToggle() {
   const { lang, toggleLang } = useI18n();
 
+  const targetLabel = lang === 'en' ? 'Indonesian' : 'English';
+  const targetCode = lang === 'en' ? 'ID' : 'EN';
+
   return (
     <button
+      type="button"
       onClick={toggleLang}
+      className="language-toggle"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
         gap: '6px',
-        padding: '6px 12px',
+        padding: '8px 14px',
         background: 'var(--color-surface)',
         border: '1px solid var(--color-border)',
         borderRadius: '999px',
         color: 'var(--color-text)',
         fontSize: '14px',
-        fontWeight: 500,
+        fontWeight: 600,
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
+        transition: 'border-color 150ms ease, color 150ms ease, box-shadow 150ms ease',
         minHeight: '44px',
         minWidth: '44px',
         boxShadow: 'var(--shadow)',
       }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.borderColor = 'var(--color-primary)';
-        e.currentTarget.style.transform = 'translateY(-1px)';
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.borderColor = 'var(--color-border)';
-        e.currentTarget.style.transform = 'translateY(0)';
-      }}
-      aria-label={`Switch to ${lang === 'en' ? 'Indonesian' : 'English'}`}
+      aria-label={`Switch to ${targetLabel}`}
+      aria-pressed={lang === 'en'}
     >
-      <Globe size={16} />
-      <span>{lang.toUpperCase()}</span>
+      <Globe size={16} aria-hidden="true" />
+      <span aria-hidden="true">{lang.toUpperCase()}</span>
+      <span className="sr-only">({targetCode})</span>
     </button>
   );
 }
