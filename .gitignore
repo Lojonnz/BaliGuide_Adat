@@ -1,3 +1,14 @@
+# Environment & secrets (NEVER commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*credentials*
+*secret*
+
 # Logs
 logs
 *.log
