@@ -293,7 +293,7 @@ MVP scope — documented honestly for judges:
 | _[Team Member 2 — I Gede Dika Bomantara]_ | Research / Content (adat & awig-awig) |
 | _[Team Member 3 — I Putu Angga Sukma Wibawa]_ | Documentation |
 
-> Replace the rows above with actual member names and roles before submission. The git author is `Lojon` (GitHub: `Lojonnz`).
+>The git author is `Lojon` (GitHub: `Lojonnz`).
 
 ---
 
