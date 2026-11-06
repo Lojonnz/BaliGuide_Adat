@@ -1,0 +1,67 @@
+import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
+import Lenis from 'lenis';
+import { gsap } from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
+
+// Safeguard #2: prevent address-bar collapse/expand from firing ScrollTrigger
+// refresh events and causing layout jumps on mobile browsers.
+ScrollTrigger.config({ ignoreMobileResize: true });
+
+interface LenisContextType {
+  lenis: Lenis | null;
+}
+
+const LenisContext = createContext<LenisContextType>({ lenis: null });
+
+export function LenisProvider({ children }: { children: ReactNode }) {
+  const lenisRef = useRef<Lenis | null>(null);
+
+  useEffect(() => {
+    // Safeguard #1: Lenis smoothTouch:false + syncTouch:false keep touch on
+    // native scroll (no hijacking on iOS Safari / Android Chrome) while
+    // mouse/trackpad wheels stay smooth.
+
+    // Initialize Lenis smooth scroll
+    const lenis = new Lenis({
+      duration: 1.2,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // easeOutExpo
+      orientation: 'vertical',
+      gestureOrientation: 'vertical',
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      // Touch safeguards — native scroll stays native on mobile so iOS
+      // Safari / Android Chrome are never stuck in a hijacked scroll.
+      smoothTouch: false,
+      syncTouch: false,
+      touchMultiplier: 2,
+      infinite: false,
+    });
+
+    lenisRef.current = lenis;
+
+    // Connect Lenis to GSAP ScrollTrigger
+    lenis.on('scroll', ScrollTrigger.update);
+
+    gsap.ticker.add((time) => {
+      lenis.raf(time * 1000);
+    });
+
+    gsap.ticker.lagSmoothing(0);
+
+    // Cleanup
+    return () => {
+      lenis.destroy();
+      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+    };
+  }, []);
+
+  return (
+    <LenisContext.Provider value={{ lenis: lenisRef.current }}>
+      {children}
+    </LenisContext.Provider>
+  );
+}
+
+export const useLenis = () => useContext(LenisContext);
