@@ -1,7 +1,8 @@
-import { useState, lazy, Suspense } from 'react';
+import { useState, lazy, Suspense, useEffect, useRef } from 'react';
+import { gsap } from 'gsap';
 import type { Gate } from './types';
 import { I18nProvider } from './context/I18nContext';
-import { LenisProvider } from './context/LenisContext';
+import { LenisProvider, scrollToTop } from './context/LenisContext';
 import { Layout } from './components/common/Layout';
 
 // Lazy load gate pages
@@ -17,6 +18,18 @@ const PelestariPage = lazy(() =>
 
 function App() {
   const [activeGate, setActiveGate] = useState<Gate>('wisatawan');
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Animate the whole main content region on every gate switch, then scroll top.
+  useEffect(() => {
+    if (!contentRef.current) return;
+    scrollToTop();
+    gsap.fromTo(
+      contentRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power3.out', clearProps: 'transform,opacity' }
+    );
+  }, [activeGate]);
 
   const renderGatePage = () => {
     switch (activeGate) {
@@ -33,43 +46,45 @@ function App() {
     <LenisProvider>
       <I18nProvider>
         <Layout activeGate={activeGate} onGateChange={setActiveGate}>
-          <Suspense
-            fallback={
-              <div
-                role="status"
-                aria-live="polite"
-                aria-label="Loading… / Memuat…"
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '16px',
-                  minHeight: '200px',
-                }}
-              >
+          <div ref={contentRef}>
+            <Suspense
+              fallback={
                 <div
-                  aria-hidden="true"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Loading… / Memuat…"
                   style={{
-                    width: '40px',
-                    height: '40px',
-                    border: '3px solid var(--color-border)',
-                    borderTopColor: 'var(--color-primary)',
-                    borderRadius: '50%',
-                    animation: 'spin 0.8s linear infinite',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '16px',
+                    minHeight: '200px',
                   }}
-                />
-                <span className="sr-only">Loading…</span>
-                <style>{`
-                  @keyframes spin {
-                    to { transform: rotate(360deg); }
-                  }
-                `}</style>
-              </div>
-            }
-          >
-            {renderGatePage()}
-          </Suspense>
+                >
+                  <div
+                    aria-hidden="true"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '3px solid var(--color-border)',
+                      borderTopColor: 'var(--color-primary)',
+                      borderRadius: '50%',
+                      animation: 'spin 0.8s linear infinite',
+                    }}
+                  />
+                  <span className="sr-only">Loading…</span>
+                  <style>{`
+                    @keyframes spin {
+                      to { transform: rotate(360deg); }
+                    }
+                  `}</style>
+                </div>
+              }
+            >
+              {renderGatePage()}
+            </Suspense>
+          </div>
         </Layout>
       </I18nProvider>
     </LenisProvider>

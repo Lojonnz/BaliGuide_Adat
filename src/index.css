@@ -1,305 +1,305 @@
 @import "tailwindcss";
 
-/* ── Design tokens (High-end Editorial) ── */
+/* ─────────────────────────────────────────────────────────────────────
+   BaliGuide Adat — HireBaliDriver-inspired design system
+   Clean, elegant, travel-focused: generous white space, bold sans,
+   soft 12px cards, solid primary buttons, material-style icons.
+   ───────────────────────────────────────────────────────────────────── */
+
 :root {
-  /* Brand Colors */
-  --color-terracotta:   #B45309;
-  --color-terracotta-light: #D97706;
-  --color-amber:        #F59E0B;
-  --color-amber-light:  #FCD34D;
-  --color-sand:         #FFF7ED;
-  --color-sand-dark:    #FFEDD5;
+  /* Brand — clean deep blue (HireBaliDriver primary) */
+  --color-primary:        #0066CC;
+  --color-primary-hover:  #0052A3;
+  --color-primary-light:  #E6F0FA;
+  --color-accent:         #FFB300;
+  --color-accent-dark:    #E69900;
 
-  /* Neutral Palette (GitHub-inspired) */
-  --color-charcoal:     #0D1117;
-  --color-charcoal-light: #161B22;
-  --color-gray-50:      #F9FAFB;
-  --color-gray-100:     #F3F4F6;
-  --color-gray-200:     #E5E7EB;
-  --color-gray-300:     #D1D5DB;
-  --color-gray-400:     #9CA3AF;
-  --color-gray-500:     #6B7280;
-  --color-gray-600:     #4B5563;
-  --color-gray-700:     #374151;
-  --color-gray-800:     #1F2937;
-  --color-gray-900:     #111827;
+  /* Semantic status */
+  --color-open:           #0E9F6E;
+  --color-restricted:     #D97706;
+  --color-closed:         #DC2626;
+  /* Hover tints — darkened versions for "not closed" semantics */
+  --color-open-hover:     #0B8A5E;
+  --color-closed-hover:   #B91C1C;
 
-  /* Status Colors */
-  --color-open:         #059669;
-  --color-restricted:   #D97706;
-  --color-closed:       #DC2626;
+  /* Surfaces & text — light, airy */
+  --color-bg:             #FAFAFA;
+  --color-surface:        #FFFFFF;
+  --color-surface-alt:    #F5F5F5;
+  --color-text:           #1A1A1A;
+  --color-text-muted:     #6B7280;
+  --color-border:         #E5E7EB;
 
-  /* Semantic Colors */
-  --color-bg:           var(--color-sand);
-  --color-surface:      #FFFFFF;
-  --color-text:         var(--color-gray-900);
-  --color-text-muted:   var(--color-gray-500);
-  --color-border:       var(--color-gray-200);
-  --color-primary:      var(--color-terracotta);
-  --color-primary-hover:#92400E;
-  --color-accent:       var(--color-amber);
+  /* Hairline + soft shadow (HireBaliDriver card: 0 2px 8px rgba(0,0,0,0.08)) */
+  --shadow-sm:            0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow:               0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg:            0 8px 24px rgba(0, 0, 0, 0.12);
+  --shadow-xl:            0 16px 40px rgba(0, 0, 0, 0.16);
 
-  /* Glass Effects */
-  --glass-bg:           rgba(255, 255, 255, 0.85);
-  --glass-border:       rgba(255, 255, 255, 0.2);
-  --glass-shadow:       0 8px 32px rgba(0, 0, 0, 0.08);
+  /* Radius scale (HBD: cards 8-12px, buttons 4-6px, chips 6px) */
+  --radius:       12px;
+  --radius-sm:    6px;
+  --radius-lg:    16px;
+  --radius-xl:    20px;
 
-  /* Glows & Highlights */
-  --glow-primary:       0 0 20px rgba(180, 83, 9, 0.3);
-  --glow-accent:        0 0 30px rgba(245, 158, 11, 0.4);
-  --glow-open:          0 0 15px rgba(5, 150, 105, 0.4);
+  /* Glass — kept for sheets/modals only */
+  --glass-bg:             rgba(255, 255, 255, 0.92);
+  --glass-border:         rgba(255, 255, 255, 0.5);
+  --glass-shadow:         var(--shadow-lg);
 
-  /* Geometry */
-  --radius:       0.75rem;
-  --radius-sm:    0.5rem;
-  --radius-lg:    1rem;
-  --shadow:       0 1px 3px rgba(0,0,0,.1), 0 1px 2px rgba(0,0,0,.06);
-  --shadow-lg:    0 20px 25px -5px rgba(0,0,0,.1), 0 10px 10px -5px rgba(0,0,0,.04);
-  --shadow-xl:    0 25px 50px -12px rgba(0,0,0,.25);
+  /* Back-compat glows (tinted to the new blue so old class names still look right) */
+  --glow-primary:         0 0 20px rgba(0, 102, 204, 0.18);
+  --glow-accent:          0 0 24px rgba(255, 179, 0, 0.2);
+  --glow-open:            0 0 16px rgba(14, 159, 110, 0.25);
+
+  /* Spacing scale (HBD: 8px base, 16/24/32/48 steps) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 48px;
+  --space-6: 64px;
+
+  /* Max content width (HBD: 1200-1400px) */
+  --container: 1200px;
+
+  /* ── Legacy aliases (other components still reference these) ── */
+  --color-terracotta:     #0066CC;
+  --color-terracotta-light: #3395E3;
+  --color-amber:          #FFB300;
+  --color-amber-light:    #FFD666;
+  --color-sand:           #FAFAFA;
+  --color-sand-dark:      #F0F0F0;
+  --color-charcoal:       #1A1A1A;
+  --color-charcoal-light: #6B7280;
+  --color-gray-50:        #FAFAFA;
+  --color-gray-100:       #F5F5F5;
+  --color-gray-200:       #E5E7EB;
+  --color-gray-300:       #D1D5DB;
+  --color-gray-400:       #9CA3AF;
+  --color-gray-500:       #6B7280;
+  --color-gray-600:       #4B5563;
+  --color-gray-700:       #374151;
+  --color-gray-800:       #1F2937;
+  --color-gray-900:       #111827;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --color-bg:           var(--color-charcoal);
-    --color-surface:      var(--color-charcoal-light);
-    --color-text:         #F3F4F6;
+    --color-bg:           #121212;
+    --color-surface:      #1C1C1C;
+    --color-surface-alt:  #242424;
+    --color-text:         #F5F5F5;
     --color-text-muted:   #9CA3AF;
-    --color-border:       #30363D;
-    --color-primary:      #D97706;
-    --color-primary-hover:#F59E0B;
+    --color-border:       #2C2C2C;
+    --color-primary:      #3395E3;
+    --color-primary-hover:#4DA6E9;
+    --color-primary-light:#1A2B3D;
 
-    --glass-bg:           rgba(22, 27, 34, 0.85);
+    --glass-bg:           rgba(28, 28, 28, 0.92);
     --glass-border:       rgba(255, 255, 255, 0.1);
-    --glass-shadow:       0 8px 32px rgba(0, 0, 0, 0.4);
   }
 }
 :root[data-theme="dark"] {
-  --color-bg:           var(--color-charcoal);
-  --color-surface:      var(--color-charcoal-light);
-  --color-text:         #F3F4F6;
+  --color-bg:           #121212;
+  --color-surface:      #1C1C1C;
+  --color-surface-alt:  #242424;
+  --color-text:         #F5F5F5;
   --color-text-muted:   #9CA3AF;
-  --color-border:       #30363D;
-  --color-primary:      #D97706;
-  --color-primary-hover:#F59E0B;
+  --color-border:       #2C2C2C;
+  --color-primary:      #3395E3;
+  --color-primary-hover:#4DA6E9;
+  --color-primary-light:#1A2B3D;
 
-  --glass-bg:           rgba(22, 27, 34, 0.85);
+  --glass-bg:           rgba(28, 28, 28, 0.92);
   --glass-border:       rgba(255, 255, 255, 0.1);
-  --glass-shadow:       0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 /* ── Base ── */
-*,::after,::before { box-sizing: border-box; }
+*, ::after, ::before { box-sizing: border-box; }
+
 html {
   -webkit-tap-highlight-color: transparent;
-  /* Lenis smooth scroll will be initialized via JS */
 }
-html.lenis, html.lenis body {
-  height: auto;
-}
-
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
-}
-
-.lenis.lenis-smooth [data-lenis-prevent] {
-  overscroll-behavior: contain;
-}
-
-.lenis.lenis-stopped {
-  overflow: hidden;
-}
-
-.lenis.lenis-scrolling iframe {
-  pointer-events: none;
-}
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-scrolling iframe { pointer-events: none; }
 
 body {
   margin: 0;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, system-ui, sans-serif;
   background: var(--color-bg);
   color: var(--color-text);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  font-size: 16px;
+  line-height: 1.6;
 }
 
-/* Nike-inspired typography */
+/* Letter-spacing: HireBaliDriver headings are tight but NOT slamming tight */
+h1, h2, h3, h4, h5, h6 {
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+/* ── Typography scale (HBD) ── */
 .hero-title {
-  font-size: clamp(2.5rem, 8vw, 6rem);
-  font-weight: 900;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-}
-
-.editorial-heading {
-  font-size: clamp(1.5rem, 4vw, 3rem);
+  font-size: clamp(2.25rem, 5vw, 3.5rem);
   font-weight: 800;
   line-height: 1.1;
   letter-spacing: -0.02em;
 }
+.editorial-heading {
+  font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
 
-/* GitHub-inspired glass cards */
+/* ── Cards ── */
 .glass-card {
-  background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  backdrop-filter: blur(16px) saturate(180%);
-  -webkit-backdrop-filter: blur(16px) saturate(180%);
-  box-shadow: var(--glass-shadow);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
 }
-
 .glass-card:hover {
-  box-shadow: var(--shadow-xl);
+  box-shadow: var(--shadow-lg);
   transform: translateY(-2px);
+  border-color: rgba(0, 102, 204, 0.25);
 }
 
-/* Glow effects */
-.glow-primary {
-  box-shadow: var(--glow-primary);
+/* Legacy classes kept working (they previously read colors we no longer use) */
+.glow-primary { box-shadow: var(--glow-primary); }
+.glow-accent { box-shadow: var(--glow-accent); }
+
+/* Small status dot pulse (temple status indicators) */
+.pulse-glow { position: relative; }
+.pulse-glow::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 9999px;
+  border: 2px solid currentColor;
+  opacity: 0.4;
+  animation: pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+@keyframes pulse-ring {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1.8); opacity: 0; }
 }
 
-.glow-accent {
-  box-shadow: var(--glow-accent);
-}
-
-.pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-@keyframes pulse-glow {
-  0%, 100% {
-    box-shadow: 0 0 10px currentColor;
-    opacity: 1;
-  }
-  50% {
-    box-shadow: 0 0 20px currentColor;
-    opacity: 0.8;
-  }
-}
-
-/* Nike-style oversized button */
+/* ── Buttons ── */
 .btn-primary {
   background: var(--color-primary);
-  color: white;
-  font-weight: 700;
-  font-size: 1.125rem;
-  padding: 1rem 2.5rem;
-  border-radius: var(--radius);
+  color: #FFFFFF;
+  font-weight: 600;
+  font-size: 1rem;
+  padding: 0.875rem 1.75rem;
+  border-radius: 6px;
   border: none;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-lg);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  box-shadow: var(--shadow);
+  letter-spacing: normal;
+  text-transform: none;
+  min-height: 44px;
 }
-
 .btn-primary:hover {
   background: var(--color-primary-hover);
-  transform: scale(1.02);
-  box-shadow: var(--shadow-xl), var(--glow-primary);
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled {
+  background: var(--color-gray-300);
+  color: var(--color-gray-600);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
-.btn-primary:active {
-  transform: scale(0.98);
+/* Secondary (outline) button — HBD ghost/secondary style */
+.btn-secondary {
+  background: var(--color-surface);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  padding: 0.75rem 1.25rem;
+  font-weight: 600;
+  font-size: 0.9375rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  min-height: 44px;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.btn-secondary:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
 }
 
-/* Spotlight card effect */
-.spotlight-card {
-  position: relative;
-  overflow: hidden;
-}
-
+/* ── Spotlight card: now a clean lift + soft border tint (no glow blob) ── */
+.spotlight-card { position: relative; }
 .spotlight-card::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: radial-gradient(
-    600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
-    rgba(255, 255, 255, 0.06),
-    transparent 40%
-  );
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(0,102,204,0.03), transparent 40%);
   opacity: 0;
-  transition: opacity 0.3s;
+  transition: opacity 0.25s ease;
   pointer-events: none;
 }
+.spotlight-card:hover::before { opacity: 1; }
 
-.spotlight-card:hover::before {
-  opacity: 1;
-}
-
-/* Leaflet fixes */
-.leaflet-container {
-  font-family: inherit !important;
-  z-index: 1;
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar { width: 8px; height: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb {
-  background: var(--color-gray-300);
-  border-radius: 4px;
-  transition: background 0.2s;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-gray-400);
-}
-
-/* Fade-in animations (GSAP will handle these) */
-.fade-in {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.stagger-item {
-  opacity: 0;
-  transform: translateY(30px);
-}
-
-/* Grid background pattern (GitHub-inspired) */
+/* ── Backgrounds & overlays ── */
 .grid-bg {
-  background-image:
-    linear-gradient(var(--color-border) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
-  background-size: 50px 50px;
-  opacity: 0.3;
+  background-image: none; /* removed — HBD look is flat light, no grid */
 }
-
-/* Cinematic overlay gradients */
-.gradient-overlay {
-  position: relative;
-}
-
+.gradient-overlay { position: relative; }
 .gradient-overlay::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    rgba(0, 0, 0, 0.4) 100%
-  );
+  background: linear-gradient(180deg, transparent 0%, rgba(0, 0, 0, 0.25) 100%);
   pointer-events: none;
 }
 
-/* Touch targets */
-button, a, [role="button"] {
-  min-height: 44px;
-  min-width: 44px;
+/* ── Leaflet ── */
+.leaflet-container { font-family: inherit !important; z-index: 1; }
+.leaflet-popup-content-wrapper {
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
 }
 
-/* Smooth transitions */
-* {
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--color-gray-300); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-gray-400); }
 
-/* ── Responsive System (Mobile < 640px, Tablet 640-1024px, Desktop > 1024px) ── */
+/* ── GSAP animation placeholders (real motion now via AnimationWrappers) ── */
+.fade-in { opacity: 0; transform: translateY(20px); }
+.stagger-item { opacity: 0; transform: translateY(30px); }
 
-/* Navbar: fixed at bottom of viewport for ALL breakpoints.
-   On mobile it's a full-width tab bar; on desktop it becomes a
-   centered floating pill parked at the bottom. */
+/* ── Touch targets ── */
+button, a, [role="button"] { min-height: 44px; min-width: 44px; }
+
+/* ── Responsive System ──
+   Mobile <640px: bottom tab bar
+   Tablet 640-1024px: floating glass pill (bottom, centered)
+   Desktop >1024px: same floating pill, slightly larger padding */
 
 .navbar-responsive {
   position: fixed !important;
@@ -318,46 +318,30 @@ button, a, [role="button"] {
   padding-bottom: calc(8px + env(safe-area-inset-bottom)) !important;
   padding-top: 8px !important;
 }
-
-.navbar-label {
-  font-size: 12px;
-}
-
-.layout-main {
-  padding-bottom: calc(16px + 84px) !important;
-}
+.navbar-label { font-size: 12px; }
+.layout-main { padding-bottom: calc(16px + 84px) !important; }
 
 @media (max-width: 639px) {
-  .navbar-label {
-    font-size: 11px;
-  }
-
-  /* Touch targets enforcement on mobile */
-  button, a, [role="button"], input, select, textarea {
-    min-height: 44px;
-  }
+  .navbar-label { font-size: 11px; }
+  button, a, [role="button"], input, select, textarea { min-height: 44px; }
 }
 
 @media (min-width: 640px) and (max-width: 1024px) {
   .navbar-responsive {
-    /* Centered floating pill on tablet — still anchored to viewport bottom */
     left: 50% !important;
     right: auto !important;
     transform: translateX(-50%) !important;
     width: min(560px, calc(100vw - 32px)) !important;
     bottom: 16px !important;
     border-radius: 16px !important;
-    border: 1px solid var(--glass-border) !important;
-    background: var(--glass-bg) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    box-shadow: var(--glass-shadow) !important;
+    border: 1px solid var(--color-border) !important;
+    background: var(--color-surface) !important;
+    box-shadow: var(--shadow-lg) !important;
     padding: 6px 12px !important;
   }
 }
 
 @media (min-width: 1025px) {
-  /* Desktop: floating centered pill at the bottom of the screen */
   .navbar-responsive {
     left: 50% !important;
     right: auto !important;
@@ -365,73 +349,42 @@ button, a, [role="button"] {
     width: min(560px, calc(100vw - 32px)) !important;
     bottom: 20px !important;
     border-radius: 20px !important;
-    border: 1px solid var(--glass-border) !important;
-    background: var(--glass-bg) !important;
-    backdrop-filter: blur(20px) saturate(180%) !important;
-    -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
-    box-shadow: var(--glass-shadow) !important;
+    border: 1px solid var(--color-border) !important;
+    background: var(--color-surface) !important;
+    box-shadow: var(--shadow-lg) !important;
     padding: 8px 16px !important;
   }
-
-  .navbar-label {
-    font-size: 12px;
-  }
+  .navbar-label { font-size: 12px; }
 }
 
-/* ── Focus & interaction states (WCAG 2.2 AA) ────────────────────────── */
-
-/* Visible focus ring for keyboard navigation — required on all interactive elements */
+/* ── Focus & interaction (WCAG 2.2 AA) ── */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
   border-radius: 4px;
 }
-
-button:focus-visible,
-a:focus-visible,
-[role="button"]:focus-visible,
-[role="tab"]:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible {
+button:focus-visible, a:focus-visible, [role="button"]:focus-visible,
+[role="tab"]:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* Modal close button hover/focus */
-.modal-close-btn:hover,
-.modal-close-btn:focus-visible {
+.modal-close-btn:hover, .modal-close-btn:focus-visible {
   background: var(--color-gray-100);
   color: var(--color-text);
   border-color: var(--color-border);
 }
 
-/* Disabled button — use token instead of grey-on-grey */
-.btn-primary:disabled,
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  filter: saturate(0.6);
-}
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; filter: saturate(0.6); }
 
-/* Navbar tab — visible focus ring + non-color active cue */
-.navbar-responsive button:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: -2px;
-}
+.navbar-responsive button:focus-visible { outline: 2px solid var(--color-primary); outline-offset: -2px; }
+.navbar-responsive button[aria-current="page"] { font-weight: 700; }
 
-.navbar-responsive button[aria-current="page"] {
-  font-weight: 700;
-}
-
-/* Checkbox / radio / input focus */
-input[type="checkbox"]:focus-visible,
-input[type="radio"]:focus-visible {
+input[type="checkbox"]:focus-visible, input[type="radio"]:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
 
-/* Respect reduced motion (WCAG 2.3.3) */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;
@@ -441,7 +394,29 @@ input[type="radio"]:focus-visible {
   }
 }
 
-/* Language toggle — CSS-only hover (no JS style mutation) */
+.skip-link {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.skip-link:focus {
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  width: auto;
+  height: auto;
+  padding: 12px 20px;
+  background: var(--color-primary);
+  color: white;
+  border-radius: 8px;
+  z-index: 9999;
+  font-weight: 600;
+}
+
+/* Language toggle — CSS-only hover */
 .language-toggle:hover {
   border-color: var(--color-primary);
   color: var(--color-primary);
@@ -459,28 +434,4 @@ input[type="radio"]:focus-visible {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
-}
-
-/* Skip link for keyboard users */
-.skip-link {
-  position: absolute;
-  left: -9999px;
-  top: auto;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-}
-
-.skip-link:focus {
-  position: fixed;
-  top: 16px;
-  left: 16px;
-  width: auto;
-  height: auto;
-  padding: 12px 20px;
-  background: var(--color-primary);
-  color: white;
-  border-radius: 8px;
-  z-index: 9999;
-  font-weight: 600;
 }

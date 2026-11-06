@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -9,11 +9,23 @@ gsap.registerPlugin(ScrollTrigger);
 // refresh events and causing layout jumps on mobile browsers.
 ScrollTrigger.config({ ignoreMobileResize: true });
 
-interface LenisContextType {
-  lenis: Lenis | null;
+// Global flag so gate navigation can scroll-to-top even without a hook.
+let lenisInstance: Lenis | null = null;
+
+export function scrollToTop() {
+  if (lenisInstance) {
+    lenisInstance.scrollTo(0, { duration: 0.6 });
+  } else {
+    window.scrollTo(0, 0);
+  }
 }
 
-const LenisContext = createContext<LenisContextType>({ lenis: null });
+interface LenisContextType {
+  lenis: Lenis | null;
+  scrollToTop: () => void;
+}
+
+const LenisContext = createContext<LenisContextType>({ lenis: null, scrollToTop: () => {} });
 
 export function LenisProvider({ children }: { children: ReactNode }) {
   const lenisRef = useRef<Lenis | null>(null);
@@ -34,14 +46,14 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       smoothWheel: !prefersReduced,
       wheelMultiplier: 1,
       // Touch safeguard: native scroll stays native on mobile (iOS Safari /
-      // Android Chrome). Lenis smoothTouch is set via options when
-      // supported; fallback is syncTouch:false so touches never hijack.
+      // Android Chrome).
       syncTouch: false,
       touchMultiplier: 2,
       infinite: false,
     });
 
     lenisRef.current = lenis;
+    lenisInstance = lenis;
 
     // Connect Lenis to GSAP ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
@@ -57,11 +69,20 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       lenis.destroy();
       gsap.ticker.remove(tick);
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+      if (lenisInstance === lenis) lenisInstance = null;
     };
   }, []);
 
+  const onScrollToTop = useCallback(() => {
+    if (lenisRef.current) {
+      lenisRef.current.scrollTo(0, { duration: 0.6 });
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   return (
-    <LenisContext.Provider value={{ lenis: lenisRef.current }}>
+    <LenisContext.Provider value={{ lenis: lenisRef.current, scrollToTop: onScrollToTop }}>
       {children}
     </LenisContext.Provider>
   );
