@@ -1,3 +1,6 @@
+# Copyrighted reference documents — no redistribution rights (never commit)
+aturan/
+
 # Environment & secrets (NEVER commit)
 .env
 .env.*
