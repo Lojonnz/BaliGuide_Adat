@@ -37,7 +37,10 @@ export function LenisProvider({ children }: { children: ReactNode }) {
     // Respect reduced motion: disable Lenis smoothing entirely
     const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    // Initialize Lenis smooth scroll
+    // Initialize Lenis smooth scroll.
+    // prevent: true makes Lenis ignore scroll events inside elements with
+    // data-lenis-prevent (modals, Leaflet map) so content inside them scrolls
+    // natively and clicks/drags are not captured.
     const lenis = new Lenis({
       duration: prefersReduced ? 0 : 1.2,
       easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)), // easeOutExpo
@@ -50,6 +53,7 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       syncTouch: false,
       touchMultiplier: 2,
       infinite: false,
+      prevent: (node: HTMLElement) => node.closest('[data-lenis-prevent]') !== null,
     });
 
     lenisRef.current = lenis;
@@ -57,6 +61,12 @@ export function LenisProvider({ children }: { children: ReactNode }) {
 
     // Connect Lenis to GSAP ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
+
+    // Re-sync after fonts/images settle (important for leaflet + page height)
+    const onLoad = () => ScrollTrigger.refresh();
+    window.addEventListener('load', onLoad);
+    const t1 = setTimeout(() => ScrollTrigger.refresh(), 300);
+    const t2 = setTimeout(() => ScrollTrigger.refresh(), 1500);
 
     const tick = (time: number) => lenis.raf(time * 1000);
     gsap.ticker.add(tick);
@@ -68,6 +78,9 @@ export function LenisProvider({ children }: { children: ReactNode }) {
     return () => {
       lenis.destroy();
       gsap.ticker.remove(tick);
+      window.removeEventListener('load', onLoad);
+      clearTimeout(t1);
+      clearTimeout(t2);
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
       if (lenisInstance === lenis) lenisInstance = null;
     };

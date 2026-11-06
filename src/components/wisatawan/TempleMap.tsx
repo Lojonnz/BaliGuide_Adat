@@ -22,6 +22,11 @@ export function TempleMap() {
   const { t, lang } = useI18n();
   const legendRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<L.Map | null>(null);
+
+  // Track "activated" state so first tap/click enables scroll-wheel zoom
+  // (prevents trapping page scroll inside the map on desktop mouse wheel).
+  const mapActivatedRef = useRef(false);
 
   const statusLabels = {
     open: { en: 'Open', id: 'Buka' },
@@ -34,7 +39,7 @@ export function TempleMap() {
       gsap.fromTo(
         legendRef.current,
         { opacity: 0, y: 20, scale: 0.95 },
-        { opacity: 1, y: 0, scale: 1, duration: 0.6, delay: 0.3, ease: 'power3.out' }
+        { opacity: 1, y: 0, scale: 1, duration: 0.6, delay: 0.3, ease: 'power3.out', clearProps: 'transform,opacity' }
       );
     }
 
@@ -42,23 +47,40 @@ export function TempleMap() {
       gsap.fromTo(
         containerRef.current,
         { opacity: 0 },
-        { opacity: 1, duration: 0.8, ease: 'power2.out' }
+        { opacity: 1, duration: 0.8, ease: 'power2.out', clearProps: 'opacity' }
       );
     }
   }, []);
 
+  const handleMapClick = () => {
+    if (!mapActivatedRef.current && mapRef.current) {
+      mapRef.current.scrollWheelZoom.enable();
+      mapActivatedRef.current = true;
+    }
+  };
+
   return (
-    <div ref={containerRef} className="relative w-full h-full">
+    <div
+      ref={containerRef}
+      data-lenis-prevent
+      className="relative w-full h-full"
+      onClick={handleMapClick}
+      style={{ position: 'relative', zIndex: 1 }}
+    >
       <MapContainer
         center={[-8.4095, 115.1889]}
         zoom={9}
-        style={{ width: '100%', height: '100%' }}
-        // Safeguard #4: scrollWheelZoom disabled so mobile users can scroll
-        // the page without getting trapped in the map. touchZoom stays on.
+        style={{ width: '100%', height: '100%', zIndex: 1 }}
+        // Safeguard #4: scrollWheelZoom disabled until first interaction so
+        // mobile + desktop users aren't trapped by the map when scrolling
+        // the page. Clicking the map once activates it — then wheel zoom
+        // works as expected.
         scrollWheelZoom={false}
         touchZoom={true}
         dragging={true}
         doubleClickZoom={true}
+        zoomControl={true}
+        ref={(m) => { mapRef.current = m; }}
       >
         <TileLayer
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

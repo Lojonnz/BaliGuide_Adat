@@ -291,7 +291,31 @@ h1, h2, h3, h4, h5, h6 {
 
 /* ── GSAP animation placeholders (real motion now via AnimationWrappers) ── */
 .fade-in { opacity: 0; transform: translateY(20px); }
+
+/* IMPORTANT: .stagger-item starts at opacity:0 so cards don't flicker
+   before the GSAP stagger runs — but it must be overridden in no-JS,
+   reduced-motion, and non-scrollTrigger edge cases. The GSAP plugin
+   clears opacity/transform after animating (clearProps), so post-animation
+   these classes are inert. */
 .stagger-item { opacity: 0; transform: translateY(30px); }
+
+/* If JS animations are disabled (reduced motion), stagger items are visible */
+@media (prefers-reduced-motion: reduce) {
+  .stagger-item,
+  .fade-in {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* If the stagger animation never ran (ScrollTrigger miss, Suspense delay,
+   etc.), a 2.5s fallback reveals everything regardless of trigger state. */
+@keyframes stagger-fallback {
+  to { opacity: 1; transform: none; }
+}
+.stagger-item {
+  animation: stagger-fallback 0.3s 2.5s forwards;
+}
 
 /* ── Touch targets ── */
 button, a, [role="button"] { min-height: 44px; min-width: 44px; }

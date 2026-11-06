@@ -102,6 +102,9 @@ export function StaggerContainer({ children, stagger = 0.08, className = '', sty
     if (!items.length) return;
 
     const ctx = gsap.context(() => {
+      // Start visible so content is never stuck invisible if ScrollTrigger
+      // misfires; then animate from hidden in a trigger.
+      gsap.set(items, { opacity: 1, y: 0 });
       gsap.fromTo(
         items,
         { opacity: 0, y: 24 },
