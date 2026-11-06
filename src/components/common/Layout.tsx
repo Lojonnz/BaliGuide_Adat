@@ -91,13 +91,13 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
         style={{
           flex: 1,
           padding: '16px',
-          paddingBottom: 'calc(16px + 68px)',
+          paddingBottom: 'calc(16px + 84px)',
         }}
       >
         {children}
       </main>
 
-      {/* Bottom navigation */}
+      {/* Navbar — fixed at bottom of viewport for ALL breakpoints */}
       <Navbar activeGate={activeGate} onGateChange={onGateChange} />
     </div>
   );
