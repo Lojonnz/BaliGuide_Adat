@@ -11,6 +11,9 @@ export interface AturanAdat {
   slug: string;
   ringkasan: string;
   isi: string;
+  tujuan?: string;
+  penerapan?: string;
+  konsekuensi?: string;
   tanggal_berlaku: string | null;
   status_berlaku: string;
   status_verifikasi: string;
@@ -18,18 +21,25 @@ export interface AturanAdat {
   updated_at: string;
   komunitas: {
     id: number;
-    kode: string | null;
+    kode?: string | null;
     nama: string;
   };
   kategori: {
     id: number;
     nama: string;
-    deskripsi: string | null;
+    deskripsi?: string | null;
   };
   wilayah: {
+    kecamatan: string;
+    kabupaten: string;
+    provinsi: string;
+  };
+  sumber?: {
     id: number;
-    nama: string;
+    judul: string;
     jenis: string;
+    tahun: number;
+    url: string;
   };
 }
 
@@ -160,4 +170,39 @@ export async function searchAturan(keyword: string): Promise<AturanAdat[]> {
       a.komunitas.nama.toLowerCase().includes(lower) ||
       a.kategori.nama.toLowerCase().includes(lower)
   );
+}
+
+/**
+ * Wilayah with Aturan count
+ */
+export interface WilayahAturan {
+  kabupaten: string;
+  provinsi: string;
+  jumlah_aturan: number;
+  kecamatan: string[];
+  coordinates: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface WilayahAturanResponse {
+  success: boolean;
+  data: WilayahAturan[];
+  count: number;
+}
+
+/**
+ * Get Wilayah with Aturan count and coordinates
+ */
+export async function getWilayahAturan(): Promise<WilayahAturanResponse> {
+  return fetchAPI<WilayahAturanResponse>('/wilayah-aturan.php');
+}
+
+/**
+ * Get Aturan by Kabupaten
+ */
+export async function getAturanByKabupaten(kabupaten: string): Promise<AturanAdat[]> {
+  const response = await getAturanAdat({ limit: 100 });
+  return response.data.filter(a => a.wilayah.kabupaten === kabupaten);
 }

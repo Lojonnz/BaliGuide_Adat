@@ -4,7 +4,6 @@ import type { TempleZone } from '../types';
 import { GeofenceHeader } from '../components/wisatawan/GeofenceHeader';
 import { TempleMap } from '../components/wisatawan/TempleMap';
 import { AwigAwigModal } from '../components/wisatawan/AwigAwigModal';
-import { AturanList } from '../components/wisatawan/AturanList';
 import { FadeIn } from '../components/common/AnimationWrappers';
 
 export function WisatawanPage() {
@@ -73,21 +72,29 @@ export function WisatawanPage() {
         </div>
       </section>
 
-      {/* Temple Map Section */}
-      <section style={{ padding: '0 16px 32px' }}>
+      {/* Temple Map Section with Integrated Aturan Adat */}
+      <section style={{ padding: '0 16px clamp(48px, 6vw, 80px)' }}>
         <div style={{ maxWidth: 'var(--container)', margin: '0 auto' }}>
           <FadeIn delay={0.45}>
-            <div className="glass-card" style={{ padding: 'clamp(16px, 3vw, 28px)', overflow: 'hidden' }}>
+            <div style={{ marginBottom: '20px' }}>
               <h2
                 className="editorial-heading"
-                style={{ margin: '0 0 20px 0' }}
+                style={{ margin: '0 0 12px 0' }}
               >
-                {t('Interactive Temple Map', 'Peta Pura Interaktif')}
+                {t('Interactive Map: Temples & Traditional Rules', 'Peta Interaktif: Pura & Aturan Adat')}
               </h2>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '15px', lineHeight: 1.6 }}>
+                {t(
+                  'Explore sacred temples and traditional rules by region. Click on blue markers to view adat rules for each area.',
+                  'Jelajahi pura suci dan aturan adat berdasarkan wilayah. Klik marker biru untuk melihat aturan adat di setiap daerah.'
+                )}
+              </p>
+            </div>
+            <div className="glass-card" style={{ padding: 'clamp(16px, 3vw, 28px)', overflow: 'hidden' }}>
               <div
                 style={{
-                  height: 'min(600px, 60vh)',
-                  minHeight: '320px',
+                  height: 'min(700px, 70vh)',
+                  minHeight: '500px',
                   borderRadius: 'var(--radius)',
                   position: 'relative',
                   zIndex: 1,
@@ -97,29 +104,6 @@ export function WisatawanPage() {
                 <TempleMap />
               </div>
             </div>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* Traditional Rules Section — Data dari Database */}
-      <section style={{ padding: '0 16px clamp(48px, 6vw, 80px)' }}>
-        <div style={{ maxWidth: 'var(--container)', margin: '0 auto' }}>
-          <FadeIn delay={0.5}>
-            <div style={{ marginBottom: '24px' }}>
-              <h2
-                className="editorial-heading"
-                style={{ color: 'var(--color-text)', marginBottom: '8px' }}
-              >
-                {t('Traditional Rules & Regulations', 'Aturan Adat & Regulasi')}
-              </h2>
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '15px', lineHeight: 1.6 }}>
-                {t(
-                  'Explore authentic adat rules from communities across Bali, sourced directly from local archives.',
-                  'Jelajahi aturan adat asli dari komunitas di seluruh Bali, bersumber langsung dari arsip lokal.'
-                )}
-              </p>
-            </div>
-            <AturanList />
           </FadeIn>
         </div>
       </section>
