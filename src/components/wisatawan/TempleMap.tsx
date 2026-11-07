@@ -20,7 +20,7 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// Custom icon for Aturan markers (different color)
+// Custom icon for Aturan markers (blue/purple tint via CSS filter)
 const aturanIcon = new L.Icon({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
@@ -29,7 +29,7 @@ const aturanIcon = new L.Icon({
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
   shadowSize: [41, 41],
-  className: 'aturan-marker',
+  className: 'aturan-marker-blue',
 });
 
 // Component to handle map flyTo on wilayah selection
@@ -74,6 +74,8 @@ export function TempleMap() {
     async function fetchWilayah() {
       try {
         const response = await getWilayahAturan();
+        console.log('📍 Wilayah dengan aturan:', response.data);
+        console.log('📊 Total wilayah markers:', response.data.length);
         setWilayahList(response.data);
       } catch (error) {
         console.error('Failed to fetch wilayah:', error);
