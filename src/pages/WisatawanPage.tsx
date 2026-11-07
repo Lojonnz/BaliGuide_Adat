@@ -4,6 +4,7 @@ import type { TempleZone } from '../types';
 import { GeofenceHeader } from '../components/wisatawan/GeofenceHeader';
 import { TempleMap } from '../components/wisatawan/TempleMap';
 import { AwigAwigModal } from '../components/wisatawan/AwigAwigModal';
+import { AturanList } from '../components/wisatawan/AturanList';
 import { FadeIn } from '../components/common/AnimationWrappers';
 
 export function WisatawanPage() {
@@ -73,7 +74,7 @@ export function WisatawanPage() {
       </section>
 
       {/* Temple Map Section */}
-      <section style={{ padding: '0 16px clamp(48px, 6vw, 80px)' }}>
+      <section style={{ padding: '0 16px 32px' }}>
         <div style={{ maxWidth: 'var(--container)', margin: '0 auto' }}>
           <FadeIn delay={0.45}>
             <div className="glass-card" style={{ padding: 'clamp(16px, 3vw, 28px)', overflow: 'hidden' }}>
@@ -96,6 +97,29 @@ export function WisatawanPage() {
                 <TempleMap />
               </div>
             </div>
+          </FadeIn>
+        </div>
+      </section>
+
+      {/* Traditional Rules Section — Data dari Database */}
+      <section style={{ padding: '0 16px clamp(48px, 6vw, 80px)' }}>
+        <div style={{ maxWidth: 'var(--container)', margin: '0 auto' }}>
+          <FadeIn delay={0.5}>
+            <div style={{ marginBottom: '24px' }}>
+              <h2
+                className="editorial-heading"
+                style={{ color: 'var(--color-text)', marginBottom: '8px' }}
+              >
+                {t('Traditional Rules & Regulations', 'Aturan Adat & Regulasi')}
+              </h2>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '15px', lineHeight: 1.6 }}>
+                {t(
+                  'Explore authentic adat rules from communities across Bali, sourced directly from local archives.',
+                  'Jelajahi aturan adat asli dari komunitas di seluruh Bali, bersumber langsung dari arsip lokal.'
+                )}
+              </p>
+            </div>
+            <AturanList />
           </FadeIn>
         </div>
       </section>
