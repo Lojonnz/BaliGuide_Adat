@@ -1,30 +1,36 @@
-import { useState, useId, useEffect } from 'react';
+import { useState, useId, useEffect, useRef } from 'react';
 import {
   MapContainer,
   TileLayer,
   Marker,
+  Popup,
   Circle,
   useMapEvents,
   useMap,
 } from 'react-leaflet';
 import L from 'leaflet';
-import type { TempleZone, TempleStatus, ZoneLayer } from '../../types';
-import { useTempleLocations, isBaliCoordinate } from '../../services/locationStorage';
+import 'leaflet/dist/leaflet.css';
+import { isBaliCoordinate } from '../../services/locationStorage';
+import {
+  getWilayah,
+  updateWilayahCoordinates,
+  type Wilayah,
+  FALLBACK_BALI_WILAYAH,
+} from '../../services/api';
 import { useI18n } from '../../context/I18nContext';
 import {
-  Plus,
-  Pencil,
-  Trash2,
-  RotateCcw,
   MapPin,
   Check,
   AlertTriangle,
-  Info,
-  Layers,
+  RotateCcw,
   Compass,
+  FileText,
+  Save,
+  Search,
+  ChevronRight,
+  Crosshair,
+  RefreshCw,
 } from 'lucide-react';
-import { SpotlightCard } from '../common/PremiumCards';
-import { ConfirmDialog } from '../common/ConfirmDialog';
 
 // Fix for default Leaflet icon
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
@@ -39,211 +45,270 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-// Interactive map click listener
+// Interactive map click listener for coordinate picking
 function LocationPickerEvents({
+  selectedWilayah,
   onPick,
 }: {
+  selectedWilayah: Wilayah | null;
   onPick: (lat: number, lng: number) => void;
 }) {
   useMapEvents({
     click(e) {
-      onPick(
-        parseFloat(e.latlng.lat.toFixed(6)),
-        parseFloat(e.latlng.lng.toFixed(6))
-      );
+      if (selectedWilayah) {
+        onPick(Number(e.latlng.lat.toFixed(6)), Number(e.latlng.lng.toFixed(6)));
+      }
     },
   });
-
   return null;
 }
 
+// Controller to smoothly animate map center to selected wilayah coordinates
 function FlyToMarker({ lat, lng }: { lat: number; lng: number }) {
   const map = useMap();
   useEffect(() => {
     if (!isNaN(lat) && !isNaN(lng)) {
-      map.flyTo([lat, lng], map.getZoom(), { duration: 0.8 });
+      map.flyTo([lat, lng], 10, { duration: 1.2 });
     }
   }, [lat, lng, map]);
   return null;
 }
 
-const DEFAULT_ZONES: ZoneLayer[] = [
-  { name: 'Perimeter', nameId: 'Batas Luar', color: '#059669', opacity: 0.12, radius: 400 },
-  { name: 'Nista Mandala', nameId: 'Nista Mandala', color: '#F59E0B', opacity: 0.18, radius: 250 },
-  { name: 'Madya Mandala', nameId: 'Madya Mandala', color: '#D97706', opacity: 0.25, radius: 150 },
-  { name: 'Utama Mandala', nameId: 'Utama Mandala', color: '#DC2626', opacity: 0.35, radius: 60 },
-];
+// Custom DivIcon for Wilayah pins on the map
+function createWilayahPinIcon(isSelected: boolean, nama: string) {
+  const shortName = nama.replace('Kabupaten ', '');
+  const bg = isSelected ? '#ea580c' : '#4f46e5';
+  const border = isSelected ? '#ffffff' : 'rgba(255,255,255,0.9)';
 
-export function MapCoordinateManager() {
-  const { t, lang } = useI18n();
-  const { temples, saveTemple, removeTemple, resetDefaults } = useTempleLocations();
+  return L.divIcon({
+    className: 'wilayah-custom-pin',
+    html: `
+      <div style="
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        transform: translate(-50%, -100%);
+        pointer-events: auto;
+        cursor: pointer;
+      ">
+        <div style="
+          background: ${bg};
+          color: #ffffff;
+          padding: 3px 8px;
+          border-radius: 999px;
+          font-size: 11px;
+          font-weight: 700;
+          white-space: nowrap;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.35);
+          border: 2px solid ${border};
+          margin-bottom: 2px;
+          transition: transform 0.2s ease;
+        ">
+          ${shortName}
+        </div>
+        <div style="
+          width: ${isSelected ? '18px' : '14px'};
+          height: ${isSelected ? '18px' : '14px'};
+          background: ${bg};
+          border-radius: 50% 50% 50% 0;
+          transform: rotate(-45deg);
+          border: 2px solid #ffffff;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        "></div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
 
-  const [editingTempleId, setEditingTempleId] = useState<string | null>(null);
-  const [isCreating, setIsCreating] = useState(false);
+interface MapCoordinateManagerProps {
+  onWilayahUpdated?: (wilayahList: Wilayah[]) => void;
+}
 
-  // Form states
-  const [formId, setFormId] = useState('');
-  const [nameEn, setNameEn] = useState('');
-  const [nameId, setNameId] = useState('');
-  const [status, setStatus] = useState<TempleStatus>('open');
-  const [lat, setLat] = useState<number>(-8.3744);
-  const [lng, setLng] = useState<number>(115.4507);
-  const [perimeterRadius, setPerimeterRadius] = useState<number>(400);
+export function MapCoordinateManager({ onWilayahUpdated }: MapCoordinateManagerProps) {
+  const { t } = useI18n();
 
-  // Confirmation dialogs
-  const [deleteTarget, setDeleteTarget] = useState<TempleZone | null>(null);
-  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [wilayahList, setWilayahList] = useState<Wilayah[]>([]);
+  const [selectedWilayah, setSelectedWilayah] = useState<Wilayah | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Form states for selected wilayah
+  const [lat, setLat] = useState<number>(-8.4543);
+  const [lng, setLng] = useState<number>(115.3549);
+
+  // Feedback notifications
   const [feedbackMsg, setFeedbackMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const latInputId = useId();
   const lngInputId = useId();
-  const nameEnInputId = useId();
-  const nameIdInputId = useId();
-  const statusSelectId = useId();
-  const radiusInputId = useId();
-
-  const isFormActive = isCreating || editingTempleId !== null;
+  const searchInputId = useId();
+  const formRef = useRef<HTMLDivElement>(null);
   const isCoordValid = isBaliCoordinate(lat, lng);
 
-  const resetForm = () => {
-    setEditingTempleId(null);
-    setIsCreating(false);
-    setFormId('');
-    setNameEn('');
-    setNameId('');
-    setStatus('open');
-    setLat(-8.3744);
-    setLng(115.4507);
-    setPerimeterRadius(400);
-  };
-
-  const handleStartCreate = () => {
-    resetForm();
-    setIsCreating(true);
-    // Center of Bali as initial position
-    setLat(-8.4095);
-    setLng(115.1889);
-    setPerimeterRadius(400);
-    setFeedbackMsg(null);
-  };
-
-  const handleStartEdit = (temple: TempleZone) => {
-    setIsCreating(false);
-    setEditingTempleId(temple.id);
-    setFormId(temple.id);
-    setNameEn(temple.name);
-    setNameId(temple.nameId);
-    setStatus(temple.status);
-    setLat(temple.lat);
-    setLng(temple.lng);
-    const outerZone = temple.zones?.[0]?.radius || 400;
-    setPerimeterRadius(outerZone);
-    setFeedbackMsg(null);
-
-    // Scroll smoothly to form
-    const formElem = document.getElementById('admin-coord-form');
-    if (formElem) {
-      formElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!nameEn.trim() || !nameId.trim()) {
+  // Fetch all 9 Kabupaten/Kota in Bali from database db_adatnusa
+  const fetchWilayahData = async () => {
+    setLoading(true);
+    try {
+      const response = await getWilayah(17);
+      if (response && response.success && response.data) {
+        setWilayahList(response.data);
+        if (onWilayahUpdated) {
+          onWilayahUpdated(response.data);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load wilayah data:', err);
       setFeedbackMsg({
         type: 'error',
-        text: t('Name in English and Indonesian is required', 'Nama dalam Bahasa Inggris dan Indonesia wajib diisi'),
+        text: t('Failed to load wilayah from database. Using fallback data.', 'Gagal memuat wilayah dari database. Menggunakan data cadangan.'),
       });
-      return;
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadInitial() {
+      setLoading(true);
+      try {
+        const response = await getWilayah(17);
+        if (!isMounted) return;
+        if (response && response.success && response.data) {
+          setWilayahList(response.data);
+          if (onWilayahUpdated) {
+            onWilayahUpdated(response.data);
+          }
+          if (response.data.length > 0) {
+            const first = response.data[0];
+            setSelectedWilayah(first);
+            setLat(first.latitude ?? -8.4543);
+            setLng(first.longitude ?? 115.3549);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load initial wilayah:', err);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+    loadInitial();
+    return () => {
+      isMounted = false;
+    };
+  }, [onWilayahUpdated]);
+
+  // Handle selecting a wilayah from list, table, or map marker
+  const handleSelectWilayah = (wilayah: Wilayah, scrollToForm = false) => {
+    setSelectedWilayah(wilayah);
+    const targetLat = wilayah.latitude !== null && !isNaN(wilayah.latitude) ? wilayah.latitude : -8.4095;
+    const targetLng = wilayah.longitude !== null && !isNaN(wilayah.longitude) ? wilayah.longitude : 115.1889;
+    setLat(targetLat);
+    setLng(targetLng);
+    setFeedbackMsg(null);
+
+    if (scrollToForm && formRef.current) {
+      formRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  };
+
+  // Revert coordinates to default fallback seed coordinates
+  const handleResetToFallback = () => {
+    if (!selectedWilayah) return;
+    const fallback = FALLBACK_BALI_WILAYAH.find((f) => f.id === selectedWilayah.id);
+    if (fallback) {
+      setLat(fallback.latitude ?? fallback.coordinates.lat);
+      setLng(fallback.longitude ?? fallback.coordinates.lng);
+      setFeedbackMsg({
+        type: 'success',
+        text: t(
+          `Reverted coordinates to default for ${selectedWilayah.nama}. Click "Save" to persist to database.`,
+          `Kordinat dikembalikan ke bawaan untuk ${selectedWilayah.nama}. Klik "Simpan" untuk menerapkan ke database.`
+        ),
+      });
+    }
+  };
+
+  // Save updated coordinates to db_adatnusa via API
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!selectedWilayah) return;
 
     if (isNaN(lat) || isNaN(lng)) {
       setFeedbackMsg({
         type: 'error',
-        text: t('Latitude and Longitude must be valid numbers', 'Latitude dan Longitude harus berupa angka valid'),
+        text: t('Please enter valid numeric latitude and longitude', 'Masukkan latitude dan longitude numerik yang valid'),
       });
       return;
     }
 
-    const id = isCreating
-      ? (formId.trim()
-          ? formId.trim().toLowerCase().replace(/[^a-z0-9_-]/g, '-')
-          : nameEn.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `temple-${Date.now()}`)
-      : formId;
+    setIsSaving(true);
+    setFeedbackMsg(null);
 
-    const existingTemple = temples.find((item) => item.id === id);
+    try {
+      const response = await updateWilayahCoordinates(selectedWilayah.id, lat, lng);
 
-    // Scale zones proportionally according to outer radius
-    const ratio = perimeterRadius / 400;
-    const computedZones: ZoneLayer[] = (existingTemple?.zones && existingTemple.zones.length > 0)
-      ? existingTemple.zones.map((zone, idx) => ({
-          ...zone,
-          radius: Math.round((DEFAULT_ZONES[idx]?.radius || 100) * ratio),
-        }))
-      : DEFAULT_ZONES.map((zone) => ({
-          ...zone,
-          radius: Math.round(zone.radius * ratio),
-        }));
+      if (response && response.success) {
+        const updatedList = wilayahList.map((w) =>
+          w.id === selectedWilayah.id
+            ? {
+                ...w,
+                latitude: lat,
+                longitude: lng,
+                coordinates: { lat, lng },
+              }
+            : w
+        );
 
-    const templeData: TempleZone = {
-      id,
-      name: nameEn.trim(),
-      nameId: nameId.trim(),
-      status,
-      lat,
-      lng,
-      zones: computedZones,
-      rules: existingTemple?.rules || [
-        {
-          id: 'r1',
-          textEn: 'Wear kamen (sarong) and senteng (sash) at all times',
-          textId: 'Kenakan kamen (sarung) dan senteng (selendang) setiap saat',
-          icon: 'shirt',
-        },
-        {
-          id: 'r2',
-          textEn: 'Respect holy areas and follow pemangku guidance',
-          textId: 'Hormati area suci dan ikuti arahan pemangku',
-          icon: 'shield-check',
-        },
-      ],
-    };
+        setWilayahList(updatedList);
+        setSelectedWilayah({
+          ...selectedWilayah,
+          latitude: lat,
+          longitude: lng,
+          coordinates: { lat, lng },
+        });
 
-    saveTemple(templeData);
-    setFeedbackMsg({
-      type: 'success',
-      text: t(
-        `Successfully saved "${templeData.name}" with coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)})`,
-        `Berhasil menyimpan "${templeData.nameId}" dengan kordinat (${lat.toFixed(4)}, ${lng.toFixed(4)})`
-      ),
-    });
-    resetForm();
-  };
+        if (onWilayahUpdated) {
+          onWilayahUpdated(updatedList);
+        }
 
-  const handleConfirmDelete = () => {
-    if (deleteTarget) {
-      removeTemple(deleteTarget.id);
-      if (editingTempleId === deleteTarget.id) {
-        resetForm();
+        setFeedbackMsg({
+          type: 'success',
+          text: t(
+            `Coordinates for "${selectedWilayah.nama}" (ID: ${selectedWilayah.id}) successfully updated in db_adatnusa!`,
+            `Kordinat "${selectedWilayah.nama}" (ID: ${selectedWilayah.id}) berhasil diperbarui di database db_adatnusa!`
+          ),
+        });
+      } else {
+        throw new Error(response.message || response.error || 'Failed to update coordinates');
       }
+    } catch (err: unknown) {
+      console.error('Update coordinates failed:', err);
+      const errMsg = err instanceof Error ? err.message : 'Server error';
       setFeedbackMsg({
-        type: 'success',
-        text: t(`Deleted location "${deleteTarget.name}"`, `Menghapus lokasi "${deleteTarget.nameId}"`),
+        type: 'error',
+        text: t(
+          `Failed to save coordinates: ${errMsg}`,
+          `Gagal menyimpan kordinat: ${errMsg}`
+        ),
       });
-      setDeleteTarget(null);
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleConfirmReset = () => {
-    resetDefaults();
-    resetForm();
-    setShowResetConfirm(false);
-    setFeedbackMsg({
-      type: 'success',
-      text: t('Reset all map locations to default seed data', 'Mengembalikan semua kordinat lokasi pura ke data bawaan'),
-    });
-  };
+  const filteredWilayah = wilayahList.filter((w) =>
+    w.nama.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (w.kode && w.kode.toLowerCase().includes(searchQuery.toLowerCase())) ||
+    String(w.id).includes(searchQuery)
+  );
 
   return (
     <div className="space-y-8" style={{ color: 'var(--color-text)' }}>
@@ -253,33 +318,26 @@ export function MapCoordinateManager() {
           <div className="flex items-center gap-2 mb-1">
             <Compass className="text-[var(--color-primary)]" size={24} />
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight">
-              {t('Map Coordinates & Temple Management', 'Manajemen Kordinat & Pura Peta')}
+              {t('Adat Territory Coordinate Management', 'Manajemen Kordinat Wilayah Adat')}
             </h2>
           </div>
           <p className="text-sm text-[var(--color-text-muted)]">
             {t(
-              'Input and edit live GPS coordinates and geofence parameters directly reflected on the Tourist Map.',
-              'Input dan ubah kordinat GPS serta parameter geofence yang langsung tampil di Peta Wisatawan.'
+              'Manage and update genuine GPS coordinates for all 9 Bali Regencies/Cities in db_adatnusa (wilayah table). Updates sync live to the tourist map.',
+              'Kelola dan perbarui kordinat GPS asli untuk 9 Kabupaten/Kota Bali di db_adatnusa (tabel wilayah). Perubahan langsung tersinkron ke peta publik.'
             )}
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <button
             type="button"
-            onClick={handleStartCreate}
-            className="btn-primary flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg shadow-sm"
-          >
-            <Plus size={16} />
-            <span>{t('Add New Location', 'Tambah Kordinat Lokasi')}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowResetConfirm(true)}
+            onClick={fetchWilayahData}
+            disabled={loading}
             className="btn-secondary flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg"
-            title={t('Reset to seed data', 'Reset ke data awal')}
+            title={t('Refresh data from database', 'Muat ulang data dari database')}
           >
-            <RotateCcw size={16} />
-            <span>{t('Reset Defaults', 'Reset Bawaan')}</span>
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            <span>{t('Refresh Data', 'Muat Ulang')}</span>
           </button>
         </div>
       </div>
@@ -288,7 +346,7 @@ export function MapCoordinateManager() {
       {feedbackMsg && (
         <div
           role="status"
-          className={`p-4 rounded-xl flex items-center gap-3 border ${
+          className={`p-4 rounded-xl flex items-center gap-3 border transition-all ${
             feedbackMsg.type === 'success'
               ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-200 dark:border-emerald-800'
               : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:text-rose-200 dark:border-rose-800'
@@ -299,410 +357,389 @@ export function MapCoordinateManager() {
           <button
             type="button"
             onClick={() => setFeedbackMsg(null)}
-            className="ml-auto text-xs opacity-75 hover:opacity-100"
+            className="ml-auto text-xs opacity-75 hover:opacity-100 p-1"
           >
             ✕
           </button>
         </div>
       )}
 
-      {/* Editor / Form Section */}
-      {isFormActive && (
-        <div id="admin-coord-form" className="glass-card p-6 sm:p-8 rounded-2xl shadow-lg border border-[var(--color-border)]">
-          <div className="flex items-center justify-between pb-4 mb-6 border-b border-[var(--color-border)]">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-                <MapPin size={22} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold">
-                  {isCreating
-                    ? t('Input New Map Location', 'Input Kordinat Lokasi Baru')
-                    : t(`Edit Location: ${nameEn || formId}`, `Ubah Kordinat: ${nameId || formId}`)}
-                </h3>
-                <p className="text-xs text-[var(--color-text-muted)]">
-                  {t(
-                    'Click on the map or drag the pin to set exact coordinates, or type latitude & longitude manually.',
-                    'Klik pada peta atau ketik latitude & longitude secara langsung untuk menentukan kordinat.'
-                  )}
-                </p>
-              </div>
+      {/* Map & Editor Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left: Interactive Map */}
+        <div className="lg:col-span-7 glass-card p-4 rounded-2xl flex flex-col" style={{ minHeight: '460px' }}>
+          <div className="flex items-center justify-between mb-3 px-2">
+            <div className="flex items-center gap-2">
+              <MapPin size={18} className="text-[var(--color-primary)]" />
+              <h3 className="font-bold text-sm">
+                {t('Geospatial Wilayah Map', 'Peta Geospasial Wilayah')}
+              </h3>
             </div>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-xs px-3 py-1.5 rounded border border-[var(--color-border)] hover:bg-[var(--color-surface-alt)]"
-            >
-              {t('Cancel', 'Batal')}
-            </button>
+            <span className="text-xs text-[var(--color-text-muted)] flex items-center gap-1">
+              <Crosshair size={13} />
+              {selectedWilayah
+                ? t('Click anywhere on map to reposition coordinates', 'Klik peta untuk memilih kordinat baru')
+                : t('Select a wilayah to edit', 'Pilih wilayah untuk mengedit')}
+            </span>
           </div>
 
-          <form onSubmit={handleSave} className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-              {/* Left Column: Form Fields */}
-              <div className="lg:col-span-6 space-y-4">
-                {/* Names */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor={nameEnInputId} className="block text-xs font-semibold uppercase tracking-wider mb-1">
-                      {t('Temple Name (English)', 'Nama Pura (Inggris)')} *
-                    </label>
-                    <input
-                      id={nameEnInputId}
-                      type="text"
-                      required
-                      value={nameEn}
-                      onChange={(e) => setNameEn(e.target.value)}
-                      placeholder="e.g. Pura Tanah Lot"
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor={nameIdInputId} className="block text-xs font-semibold uppercase tracking-wider mb-1">
-                      {t('Temple Name (Indonesian)', 'Nama Pura (Indonesia)')} *
-                    </label>
-                    <input
-                      id={nameIdInputId}
-                      type="text"
-                      required
-                      value={nameId}
-                      onChange={(e) => setNameId(e.target.value)}
-                      placeholder="contoh: Pura Tanah Lot"
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                    />
-                  </div>
-                </div>
+          <div className="relative flex-1 w-full rounded-xl overflow-hidden border border-[var(--color-border)]" style={{ minHeight: '380px' }}>
+            <MapContainer
+              center={[-8.45, 115.18]}
+              zoom={9}
+              style={{ width: '100%', height: '100%', minHeight: '380px' }}
+              scrollWheelZoom={true}
+            >
+              <TileLayer
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+              />
 
-                {/* ID & Status */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label htmlFor="admin-temple-id" className="block text-xs font-semibold uppercase tracking-wider mb-1">
-                      {t('Unique ID / Slug', 'ID Unik')}
-                    </label>
-                    <input
-                      id="admin-temple-id"
-                      type="text"
-                      disabled={!isCreating}
-                      value={formId}
-                      onChange={(e) => setFormId(e.target.value)}
-                      placeholder={isCreating ? t('Auto-generated if empty', 'Otomatis jika kosong') : undefined}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-alt)] text-sm disabled:opacity-75 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor={statusSelectId} className="block text-xs font-semibold uppercase tracking-wider mb-1">
-                      {t('Access Status', 'Status Akses')} *
-                    </label>
-                    <select
-                      id={statusSelectId}
-                      value={status}
-                      onChange={(e) => setStatus(e.target.value as TempleStatus)}
-                      className="w-full px-3 py-2 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                    >
-                      <option value="open">{t('Open (Buka)', 'Buka (Open)')}</option>
-                      <option value="restricted">{t('Restricted Access (Akses Terbatas)', 'Akses Terbatas')}</option>
-                      <option value="closed">{t('Closed for Worship (Ditutup untuk Ibadah)', 'Ditutup untuk Ibadah')}</option>
-                    </select>
-                  </div>
-                </div>
+              {/* Fly to selected coords */}
+              {selectedWilayah && (
+                <FlyToMarker lat={lat} lng={lng} />
+              )}
 
-                {/* Coordinates Input */}
-                <div className="p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-alt)] space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                      <MapPin size={14} className="text-[var(--color-primary)]" />
-                      {t('Coordinates (Latitude & Longitude)', 'Kordinat (Latitude & Longitude)')}
+              {/* Click to pick location */}
+              <LocationPickerEvents
+                selectedWilayah={selectedWilayah}
+                onPick={(newLat, newLng) => {
+                  setLat(newLat);
+                  setLng(newLng);
+                  setFeedbackMsg({
+                    type: 'success',
+                    text: t(
+                      `Picked coordinate: [${newLat}, ${newLng}]. Click "Save Coordinates" to apply.`,
+                      `Kordinat terpilih: [${newLat}, ${newLng}]. Klik "Simpan Kordinat" untuk menyimpan.`
+                    ),
+                  });
+                }}
+              />
+
+              {/* Highlight Circle around currently edited coordinates */}
+              {selectedWilayah && !isNaN(lat) && !isNaN(lng) && (
+                <Circle
+                  center={[lat, lng]}
+                  radius={4000}
+                  pathOptions={{
+                    color: '#ea580c',
+                    fillColor: '#ea580c',
+                    fillOpacity: 0.15,
+                    weight: 2,
+                    dashArray: '4, 6',
+                  }}
+                />
+              )}
+
+              {/* Wilayah Markers */}
+              {wilayahList.map((wilayah) => {
+                const isSelected = selectedWilayah?.id === wilayah.id;
+                const markerLat = isSelected ? lat : (wilayah.latitude ?? -8.4095);
+                const markerLng = isSelected ? lng : (wilayah.longitude ?? 115.1889);
+
+                return (
+                  <Marker
+                    key={wilayah.id}
+                    position={[markerLat, markerLng]}
+                    icon={createWilayahPinIcon(isSelected, wilayah.nama)}
+                    eventHandlers={{
+                      click: () => handleSelectWilayah(wilayah),
+                    }}
+                  >
+                    <Popup>
+                      <div className="p-1 space-y-1.5" style={{ minWidth: '170px' }}>
+                        <div className="font-bold text-sm">{wilayah.nama}</div>
+                        <div className="text-xs text-[var(--color-text-muted)]">
+                          ID: <span className="font-mono font-semibold">{wilayah.id}</span>
+                        </div>
+                        <div className="text-xs font-mono">
+                          GPS: {markerLat.toFixed(4)}, {markerLng.toFixed(4)}
+                        </div>
+                        <div className="text-xs text-[var(--color-primary)] font-semibold">
+                          {wilayah.aturan_count || 0} {t('rules registered', 'aturan adat')}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleSelectWilayah(wilayah, true)}
+                          className="w-full mt-2 px-2.5 py-1 text-xs font-semibold rounded bg-[var(--color-primary)] text-white hover:opacity-90"
+                        >
+                          {t('Edit Coordinates', 'Ubah Kordinat')}
+                        </button>
+                      </div>
+                    </Popup>
+                  </Marker>
+                );
+              })}
+            </MapContainer>
+          </div>
+        </div>
+
+        {/* Right: Form Editor */}
+        <div ref={formRef} className="lg:col-span-5 glass-card p-6 rounded-2xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between pb-4 mb-5 border-b border-[var(--color-border)]">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-xl bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+                  <MapPin size={20} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-base">
+                    {selectedWilayah
+                      ? t(`Edit: ${selectedWilayah.nama}`, `Ubah: ${selectedWilayah.nama}`)
+                      : t('Select a Wilayah', 'Pilih Wilayah')}
+                  </h3>
+                  <p className="text-xs text-[var(--color-text-muted)]">
+                    {t('Wilayah ID in db_adatnusa:', 'ID Wilayah di db_adatnusa:')}{' '}
+                    <span className="font-mono font-bold text-[var(--color-text)]">
+                      {selectedWilayah ? selectedWilayah.id : '-'}
                     </span>
-                    {!isCoordValid && (
-                      <span className="text-xs font-medium text-amber-600 flex items-center gap-1">
-                        <AlertTriangle size={12} />
-                        {t('Outside typical Bali region', 'Di luar wilayah Bali')}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label htmlFor={latInputId} className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">
-                        {t('Latitude (e.g. -8.3744)', 'Latitude (contoh: -8.3744)')}
-                      </label>
-                      <input
-                        id={latInputId}
-                        type="number"
-                        step="0.000001"
-                        required
-                        value={isNaN(lat) ? '' : lat}
-                        onChange={(e) => setLat(parseFloat(e.target.value))}
-                        className="w-full px-3 py-2 rounded border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      />
-                    </div>
-                    <div>
-                      <label htmlFor={lngInputId} className="block text-xs font-medium text-[var(--color-text-muted)] mb-1">
-                        {t('Longitude (e.g. 115.4507)', 'Longitude (contoh: 115.4507)')}
-                      </label>
-                      <input
-                        id={lngInputId}
-                        type="number"
-                        step="0.000001"
-                        required
-                        value={isNaN(lng) ? '' : lng}
-                        onChange={(e) => setLng(parseFloat(e.target.value))}
-                        className="w-full px-3 py-2 rounded border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
-                      />
-                    </div>
-                  </div>
-
-                  <p className="text-xs text-[var(--color-text-muted)] flex items-center gap-1">
-                    <Info size={12} />
-                    {t(
-                      'Tip: Click anywhere on the map to set coordinates automatically.',
-                      'Petunjuk: Klik di mana saja pada peta untuk mengatur kordinat otomatis.'
-                    )}
                   </p>
                 </div>
+              </div>
+            </div>
 
-                {/* Geofence Perimeter Radius */}
-                <div>
-                  <div className="flex justify-between items-center mb-1">
-                    <label htmlFor={radiusInputId} className="text-xs font-semibold uppercase tracking-wider">
-                      {t('Outer Perimeter Radius', 'Radius Batas Luar')} ({perimeterRadius}m)
-                    </label>
-                    <span className="text-xs text-[var(--color-text-muted)]">
-                      {t('Mandala zones scale automatically', 'Zona Mandala berskala proporsional')}
+            {selectedWilayah ? (
+              <form onSubmit={handleSave} className="space-y-4">
+                {/* Wilayah Info Card */}
+                <div className="p-3.5 rounded-xl bg-[var(--color-surface-alt)] border border-[var(--color-border)] space-y-2">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-[var(--color-text-muted)]">{t('Region Name', 'Nama Wilayah')}:</span>
+                    <span className="font-bold text-[var(--color-text)]">{selectedWilayah.nama}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-[var(--color-text-muted)]">{t('Region Code / Type', 'Kode / Jenis')}:</span>
+                    <span className="font-mono text-[var(--color-text-muted)]">
+                      {selectedWilayah.kode || selectedWilayah.jenis}
                     </span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-[var(--color-text-muted)]">{t('Associated Rules', 'Aturan Terdaftar')}:</span>
+                    <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                      {selectedWilayah.aturan_count || 0} {t('rules', 'aturan')}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Coordinate Inputs */}
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <label htmlFor={latInputId} className="text-xs font-semibold uppercase tracking-wider">
+                      Latitude
+                    </label>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">WGS84 GPS</span>
                   </div>
                   <input
-                    id={radiusInputId}
-                    type="range"
-                    min="100"
-                    max="1200"
-                    step="50"
-                    value={perimeterRadius}
-                    onChange={(e) => setPerimeterRadius(parseInt(e.target.value, 10))}
-                    className="w-full accent-[var(--color-primary)] cursor-pointer"
+                    id={latInputId}
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={isNaN(lat) ? '' : lat}
+                    onChange={(e) => setLat(parseFloat(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    placeholder="-8.454300"
                   />
-                  <div className="flex justify-between text-[11px] text-[var(--color-text-muted)] mt-1">
-                    <span>100m</span>
-                    <span>400m ({t('Default', 'Bawaan')})</span>
-                    <span>1200m</span>
+
+                  <div className="flex items-center justify-between pt-1">
+                    <label htmlFor={lngInputId} className="text-xs font-semibold uppercase tracking-wider">
+                      Longitude
+                    </label>
+                    <span className="text-[11px] text-[var(--color-text-muted)]">WGS84 GPS</span>
                   </div>
-                </div>
-              </div>
-
-              {/* Right Column: Interactive Leaflet Coordinate Picker Map */}
-              <div className="lg:col-span-6 flex flex-col">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5">
-                    <Layers size={14} className="text-[var(--color-primary)]" />
-                    {t('Interactive Coordinate Picker', 'Peta Pemilih Kordinat Interaktif')}
-                  </span>
-                  <span className="text-xs font-mono bg-[var(--color-surface-alt)] px-2 py-0.5 rounded border border-[var(--color-border)]">
-                    {lat.toFixed(4)}, {lng.toFixed(4)}
-                  </span>
+                  <input
+                    id={lngInputId}
+                    type="number"
+                    step="0.000001"
+                    required
+                    value={isNaN(lng) ? '' : lng}
+                    onChange={(e) => setLng(parseFloat(e.target.value))}
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+                    placeholder="115.354900"
+                  />
                 </div>
 
-                <div
-                  className="rounded-xl overflow-hidden border border-[var(--color-border)] flex-1"
-                  style={{ minHeight: '340px', height: '100%', position: 'relative' }}
-                >
-                  <MapContainer
-                    center={[lat || -8.3744, lng || 115.4507]}
-                    zoom={11}
-                    scrollWheelZoom={true}
-                    style={{ height: '100%', width: '100%', minHeight: '340px' }}
-                  >
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-
-                    <LocationPickerEvents
-                      onPick={(newLat, newLng) => {
-                        setLat(newLat);
-                        setLng(newLng);
-                      }}
-                    />
-
-                    <FlyToMarker lat={lat} lng={lng} />
-
-                    {/* Outer Perimeter Circle Preview */}
-                    {!isNaN(lat) && !isNaN(lng) && (
-                      <>
-                        <Circle
-                          center={[lat, lng]}
-                          radius={perimeterRadius}
-                          pathOptions={{
-                            color: '#059669',
-                            fillColor: '#059669',
-                            fillOpacity: 0.15,
-                            weight: 2,
-                          }}
-                        />
-                        <Circle
-                          center={[lat, lng]}
-                          radius={Math.round(perimeterRadius * 0.2)}
-                          pathOptions={{
-                            color: '#DC2626',
-                            fillColor: '#DC2626',
-                            fillOpacity: 0.35,
-                            weight: 2,
-                          }}
-                        />
-                        <Marker
-                          position={[lat, lng]}
-                          draggable={true}
-                          eventHandlers={{
-                            dragend: (e) => {
-                              const marker = e.target;
-                              const position = marker.getLatLng();
-                              setLat(parseFloat(position.lat.toFixed(6)));
-                              setLng(parseFloat(position.lng.toFixed(6)));
-                            },
-                          }}
-                        />
-                      </>
-                    )}
-                  </MapContainer>
-                </div>
-              </div>
-            </div>
-
-            {/* Form actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--color-border)]">
-              <button
-                type="button"
-                onClick={resetForm}
-                className="btn-secondary px-4 py-2 text-sm rounded-lg"
-              >
-                {t('Cancel', 'Batal')}
-              </button>
-              <button
-                type="submit"
-                className="btn-primary px-6 py-2 text-sm font-semibold rounded-lg flex items-center gap-2"
-              >
-                <Check size={16} />
-                <span>{t('Save Location & Coordinates', 'Simpan Kordinat & Lokasi')}</span>
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
-      {/* List of Stored Coordinates / Temples */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold flex items-center gap-2">
-            <span>{t('Configured Locations', 'Daftar Kordinat Lokasi')}</span>
-            <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)]">
-              {temples.length}
-            </span>
-          </h3>
-          <span className="text-xs text-[var(--color-text-muted)]">
-            {t('All coordinates sync live to map', 'Semua kordinat tersinkron langsung ke peta')}
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {temples.map((temple) => {
-            const isEditingThis = editingTempleId === temple.id;
-            return (
-              <SpotlightCard
-                key={temple.id}
-                className={`glass-card p-5 rounded-xl border transition-all ${
-                  isEditingThis ? 'ring-2 ring-[var(--color-primary)]' : 'border-[var(--color-border)]'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div>
-                    <h4 className="font-bold text-base leading-snug">
-                      {lang === 'en' ? temple.name : temple.nameId}
-                    </h4>
-                    <span className="text-xs text-[var(--color-text-muted)] font-mono">
-                      id: {temple.id}
+                {/* Coordinate Validation Badge */}
+                <div className="pt-1 flex items-center justify-between text-xs">
+                  {isCoordValid ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                      <Check size={14} />
+                      {t('Valid Bali coordinates', 'Kordinat valid di Pulau Bali')}
                     </span>
-                  </div>
-                  <span
-                    className={`text-[11px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                      temple.status === 'open'
-                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                        : temple.status === 'restricted'
-                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                        : 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                    }`}
-                  >
-                    {temple.status}
-                  </span>
-                </div>
+                  ) : (
+                    <span className="text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                      <AlertTriangle size={14} />
+                      {t('Coordinates outside Bali bounds', 'Kordinat berada di luar wilayah Bali')}
+                    </span>
+                  )}
 
-                {/* Coordinate details */}
-                <div className="p-2.5 rounded-lg bg-[var(--color-surface-alt)] mb-4 text-xs font-mono space-y-1">
-                  <div className="flex justify-between">
-                    <span className="text-[var(--color-text-muted)] font-sans">Latitude:</span>
-                    <span className="font-semibold">{temple.lat.toFixed(6)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[var(--color-text-muted)] font-sans">Longitude:</span>
-                    <span className="font-semibold">{temple.lng.toFixed(6)}</span>
-                  </div>
-                  <div className="flex justify-between border-t border-[var(--color-border)] pt-1 mt-1 font-sans">
-                    <span className="text-[var(--color-text-muted)]">{t('Geofence Zones:', 'Zona Geofence:')}</span>
-                    <span className="font-semibold">{temple.zones?.length || 0} {t('layers', 'lapisan')}</span>
-                  </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--color-border)]">
                   <button
                     type="button"
-                    onClick={() => handleStartEdit(temple)}
-                    className="p-2 rounded-lg border border-[var(--color-border)] hover:bg-[var(--color-surface-alt)] text-[var(--color-primary)] text-xs flex items-center gap-1.5 transition-colors"
+                    onClick={handleResetToFallback}
+                    className="text-xs text-[var(--color-text-muted)] hover:text-[var(--color-primary)] flex items-center gap-1 transition-colors"
+                    title={t('Reset to original default coordinates', 'Kembalikan ke kordinat bawaan')}
                   >
-                    <Pencil size={14} />
-                    <span>{t('Edit Coordinates', 'Ubah Kordinat')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setDeleteTarget(temple)}
-                    className="p-2 rounded-lg border border-[var(--color-border)] hover:bg-rose-50 dark:hover:bg-rose-950 text-rose-600 text-xs flex items-center gap-1.5 transition-colors"
-                    title={t('Delete location', 'Hapus lokasi')}
-                  >
-                    <Trash2 size={14} />
-                    <span className="sr-only sm:not-sr-only">{t('Delete', 'Hapus')}</span>
+                    <RotateCcw size={12} />
+                    <span>{t('Reset', 'Kordinat Asli')}</span>
                   </button>
                 </div>
-              </SpotlightCard>
-            );
-          })}
+
+                {/* Action Buttons */}
+                <div className="pt-4 space-y-2">
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="btn-primary w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-sm shadow-sm transition-all"
+                  >
+                    <Save size={16} />
+                    <span>
+                      {isSaving
+                        ? t('Saving to db_adatnusa...', 'Menyimpan ke database...')
+                        : t('Save Coordinates to Database', 'Simpan Kordinat ke Database')}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="text-center py-12 text-[var(--color-text-muted)] text-sm">
+                {t('Please select a wilayah from the list or map to edit coordinates.', 'Silakan pilih wilayah dari daftar atau peta untuk mengubah kordinat.')}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 pt-4 border-t border-[var(--color-border)] text-xs text-[var(--color-text-muted)]">
+            💡 {t('Tip: Click anywhere on the map above to accurately reposition the GPS pin for the selected wilayah.', 'Tips: Klik di bagian manapun pada peta di atas untuk memindahkan titik kordinat GPS secara akurat.')}
+          </div>
         </div>
       </div>
 
-      {/* Confirmation Dialogs */}
-      <ConfirmDialog
-        open={deleteTarget !== null}
-        title={t('Delete Location', 'Hapus Lokasi')}
-        message={t(
-          `Are you sure you want to remove "${deleteTarget?.name}"? It will no longer appear on the tourist map.`,
-          `Apakah Anda yakin ingin menghapus "${deleteTarget?.nameId}"? Lokasi ini tidak akan lagi tampil di peta wisatawan.`
-        )}
-        confirmLabel={t('Yes, Delete', 'Ya, Hapus')}
-        cancelLabel={t('Cancel', 'Batal')}
-        danger
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setDeleteTarget(null)}
-      />
+      {/* Wilayah List / Table (9 Regencies/Cities of Bali) */}
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-base font-bold flex items-center gap-2">
+              <span>{t('Bali Regencies & Cities (db_adatnusa)', 'Daftar 9 Wilayah Kabupaten & Kota Bali')}</span>
+              <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-[var(--color-primary-light)] text-[var(--color-primary)]">
+                {wilayahList.length}
+              </span>
+            </h3>
+            <p className="text-xs text-[var(--color-text-muted)]">
+              {t('Table `wilayah` in db_adatnusa with associated customary rules count', 'Data tabel `wilayah` di db_adatnusa dengan jumlah aturan adat')}
+            </p>
+          </div>
 
-      <ConfirmDialog
-        open={showResetConfirm}
-        title={t('Reset Coordinates to Defaults', 'Reset Kordinat ke Bawaan')}
-        message={t(
-          'This will overwrite all custom coordinates and restore BaliGuide Adat default seed temples (Besakih, Uluwatu, Tirta Empul). Continue?',
-          'Tindakan ini akan menimpa semua kordinat khusus dan memulihkan data bawaan pura BaliGuide Adat (Besakih, Uluwatu, Tirta Empul). Lanjutkan?'
-        )}
-        confirmLabel={t('Yes, Reset', 'Ya, Reset')}
-        cancelLabel={t('Cancel', 'Batal')}
-        onConfirm={handleConfirmReset}
-        onCancel={() => setShowResetConfirm(false)}
-      />
+          {/* Search Input */}
+          <div className="relative w-full sm:w-64">
+            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-text-muted)]" />
+            <input
+              id={searchInputId}
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t('Search wilayah...', 'Cari wilayah...')}
+              className="w-full pl-9 pr-3 py-1.5 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface)] text-xs focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]"
+            />
+          </div>
+        </div>
+
+        {/* Table View */}
+        <div className="overflow-x-auto glass-card rounded-2xl border border-[var(--color-border)] shadow-sm">
+          <table className="w-full text-left text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-[var(--color-border)] bg-[var(--color-surface-alt)] text-[var(--color-text-muted)] text-xs font-semibold uppercase tracking-wider">
+                <th className="py-3 px-4">ID</th>
+                <th className="py-3 px-4">{t('Region Name', 'Nama Wilayah')}</th>
+                <th className="py-3 px-4">{t('Coordinates (Latitude, Longitude)', 'Kordinat (Lat, Lng)')}</th>
+                <th className="py-3 px-4">{t('Rules Count', 'Jumlah Aturan')}</th>
+                <th className="py-3 px-4">{t('Status', 'Status GPS')}</th>
+                <th className="py-3 px-4 text-right">{t('Action', 'Aksi')}</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--color-border)]">
+              {filteredWilayah.map((wilayah) => {
+                const isSelected = selectedWilayah?.id === wilayah.id;
+                const hasValidCoord =
+                  wilayah.latitude !== null &&
+                  wilayah.longitude !== null &&
+                  !isNaN(wilayah.latitude) &&
+                  !isNaN(wilayah.longitude);
+
+                return (
+                  <tr
+                    key={wilayah.id}
+                    onClick={() => handleSelectWilayah(wilayah, true)}
+                    className={`cursor-pointer transition-colors ${
+                      isSelected
+                        ? 'bg-[var(--color-primary-light)]/40 font-medium'
+                        : 'hover:bg-[var(--color-surface-alt)]'
+                    }`}
+                  >
+                    <td className="py-3.5 px-4">
+                      <span className="font-mono text-xs px-2 py-0.5 rounded bg-[var(--color-surface-alt)] border border-[var(--color-border)]">
+                        {wilayah.id}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <div className="font-semibold text-[var(--color-text)]">{wilayah.nama}</div>
+                      <div className="text-xs text-[var(--color-text-muted)]">{wilayah.jenis}</div>
+                    </td>
+                    <td className="py-3.5 px-4 font-mono text-xs">
+                      {hasValidCoord ? (
+                        <span>
+                          {wilayah.latitude?.toFixed(5)}, {wilayah.longitude?.toFixed(5)}
+                        </span>
+                      ) : (
+                        <span className="text-amber-500 italic">{t('Unset', 'Belum diset')}</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                        <FileText size={12} />
+                        {wilayah.aturan_count || 0} {t('rules', 'aturan')}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      {hasValidCoord ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                          <Check size={14} />
+                          {t('Mapped', 'Terpetakan')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs text-amber-600 font-medium">
+                          <AlertTriangle size={14} />
+                          {t('No GPS', 'Tanpa GPS')}
+                        </span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSelectWilayah(wilayah, true);
+                        }}
+                        className={`text-xs px-3 py-1.5 rounded-lg border font-semibold inline-flex items-center gap-1 transition-colors ${
+                          isSelected
+                            ? 'bg-[var(--color-primary)] text-white border-transparent'
+                            : 'border-[var(--color-border)] hover:bg-[var(--color-surface-alt)] text-[var(--color-primary)]'
+                        }`}
+                      >
+                        <span>{isSelected ? t('Selected', 'Terpilih') : t('Edit', 'Pilih & Ubah')}</span>
+                        <ChevronRight size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+              {filteredWilayah.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-xs text-[var(--color-text-muted)]">
+                    {t('No wilayah found matching your search.', 'Tidak ada wilayah yang cocok dengan pencarian.')}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

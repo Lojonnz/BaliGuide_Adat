@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef, Fragment } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
-import { useTempleLocations } from '../../services/locationStorage';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import { useI18n } from '../../context/I18nContext';
 import { getWilayahAturan, getAturanByKabupaten, type WilayahAturan, type AturanAdat } from '../../services/api';
 import L from 'leaflet';
@@ -13,7 +12,8 @@ import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 
-delete (L.Icon.Default.prototype as any)._getIconUrl;
+const iconDefaultProto = L.Icon.Default.prototype as { _getIconUrl?: unknown };
+delete iconDefaultProto._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: markerIcon,
   iconRetinaUrl: markerIcon2x,
@@ -48,8 +48,7 @@ function MapController({ selectedWilayah }: { selectedWilayah: WilayahAturan | n
 }
 
 export function TempleMap() {
-  const { t, lang } = useI18n();
-  const { temples } = useTempleLocations();
+  const { t } = useI18n();
   const legendRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -64,11 +63,6 @@ export function TempleMap() {
   // Track "activated" state so first tap/click enables scroll-wheel zoom
   const mapActivatedRef = useRef(false);
 
-  const statusLabels = {
-    open: { en: 'Open', id: 'Buka' },
-    restricted: { en: 'Restricted Access', id: 'Akses Terbatas' },
-    closed: { en: 'Closed for Worship', id: 'Ditutup untuk Ibadah' },
-  };
 
   // Fetch wilayah dengan aturan
   useEffect(() => {
@@ -167,46 +161,6 @@ export function TempleMap() {
 
         <MapController selectedWilayah={selectedWilayah} />
 
-        {/* Temple markers & zones */}
-        {temples.map((temple) => (
-          <Fragment key={temple.id}>
-            {/* Render zones from outermost to innermost */}
-            {[...temple.zones].reverse().map((zone, idx) => (
-              <Circle
-                key={`${temple.id}-${idx}`}
-                center={[temple.lat, temple.lng]}
-                radius={zone.radius}
-                pathOptions={{
-                  color: zone.color,
-                  fillColor: zone.color,
-                  fillOpacity: zone.opacity,
-                  weight: 2,
-                }}
-              />
-            ))}
-
-            {/* Temple marker */}
-            <Marker position={[temple.lat, temple.lng]}>
-              <Popup>
-                <div style={{ minWidth: '150px' }}>
-                  <strong
-                    className="text-base font-semibold block mb-1"
-                    style={{ color: 'var(--color-text)' }}
-                  >
-                    {lang === 'en' ? temple.name : temple.nameId}
-                  </strong>
-                  <span
-                    className="text-sm"
-                    style={{ color: 'var(--color-text-muted)' }}
-                  >
-                    {t(statusLabels[temple.status].en, statusLabels[temple.status].id)}
-                  </span>
-                </div>
-              </Popup>
-            </Marker>
-          </Fragment>
-        ))}
-
         {/* Wilayah markers for aturan adat */}
         {wilayahList.map((wilayah) => (
           <Marker
@@ -273,7 +227,7 @@ export function TempleMap() {
       {/* Legend Overlay with Glass Card */}
       <div
         ref={legendRef}
-        aria-label={t('Zone layers legend', 'Legenda lapisan zona')}
+        aria-label={t('Map legend', 'Legenda peta')}
         className="glass-card absolute bottom-5 right-5 p-4 rounded-xl"
         style={{
           zIndex: 1000,
@@ -287,52 +241,29 @@ export function TempleMap() {
         >
           {t('Map Legend', 'Legenda Peta')}
         </h4>
-        <div className="flex flex-col gap-2">
-          {[
-            { name: 'Perimeter', nameId: 'Batas Luar', color: '#059669' },
-            { name: 'Nista Mandala', nameId: 'Nista Mandala', color: '#F59E0B' },
-            { name: 'Madya Mandala', nameId: 'Madya Mandala', color: '#D97706' },
-            { name: 'Utama Mandala', nameId: 'Utama Mandala', color: '#DC2626' },
-          ].map((zone) => (
-            <div key={zone.name} className="flex items-center gap-2">
-              <div
-                className="flex-shrink-0 rounded-full border-2"
-                style={{
-                  width: '16px',
-                  height: '16px',
-                  background: zone.color,
-                  borderColor: 'rgba(255, 255, 255, 0.8)',
-                  boxShadow: `0 0 8px ${zone.color}50`,
-                }}
-              />
-              <span className="text-xs font-medium" style={{ color: 'var(--color-text)' }}>
-                {t(zone.name, zone.nameId)}
-              </span>
-            </div>
-          ))}
-          <div className="flex items-center gap-2 pt-1 border-t border-[var(--color-border)]">
+        <div className="flex flex-col gap-2.5">
+          <div className="flex items-center gap-2.5">
             <div
               className="flex-shrink-0 rounded-full flex items-center justify-center text-white"
               style={{
-                width: '16px',
-                height: '16px',
-                background: '#8B5CF6',
-                fontSize: '10px',
+                width: '18px',
+                height: '18px',
+                background: '#4f46e5',
+                boxShadow: '0 0 10px rgba(79, 70, 229, 0.4)',
+                fontSize: '11px',
               }}
             >
-              •
+              📍
             </div>
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              {t('Adat Region (Database)', 'Wilayah Adat (Database)')}
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+              {t('Adat Wilayah (db_adatnusa)', 'Wilayah Adat (db_adatnusa)')}
             </span>
           </div>
-          <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '8px', paddingTop: '8px' }}>
-            <div className="flex items-center gap-2">
-              <FileText size={16} style={{ color: 'var(--color-primary)' }} />
-              <span className="text-xs font-medium" style={{ color: 'var(--color-text)' }}>
-                {t('Traditional Rules', 'Aturan Adat')}
-              </span>
-            </div>
+          <div className="flex items-center gap-2.5 pt-1.5 border-t border-[var(--color-border)]">
+            <FileText size={16} style={{ color: 'var(--color-primary)' }} />
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {t('Click marker to view local rules', 'Klik marker untuk melihat aturan')}
+            </span>
           </div>
         </div>
       </div>
