@@ -15,6 +15,9 @@ const KramaPage = lazy(() =>
 const PelestariPage = lazy(() =>
   import('./pages/PelestariPage').then((m) => ({ default: m.PelestariPage }))
 );
+const AdminPage = lazy(() =>
+  import('./pages/AdminPage').then((m) => ({ default: m.AdminPage }))
+);
 
 function App() {
   const [activeGate, setActiveGate] = useState<Gate>('wisatawan');
@@ -39,6 +42,8 @@ function App() {
         return <KramaPage />;
       case 'pelestari':
         return <PelestariPage />;
+      case 'admin':
+        return <AdminPage />;
     }
   };
 

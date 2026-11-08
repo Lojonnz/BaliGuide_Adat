@@ -113,4 +113,4 @@ export interface HeritageItem {
 
 /* ── i18n ── */
 export type Lang = 'en' | 'id';
-export type Gate = 'wisatawan' | 'krama' | 'pelestari';
+export type Gate = 'wisatawan' | 'krama' | 'pelestari' | 'admin';

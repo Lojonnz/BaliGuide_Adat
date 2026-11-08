@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { RotateCcw, SkipForward, Sparkles } from 'lucide-react';
 import { useI18n } from '../../context/I18nContext';
 import { wianjanaLetters } from '../../data';
@@ -40,6 +40,28 @@ export function WritingPractice() {
     return ctx;
   };
 
+  const drawGuidePath = useCallback((ctx: CanvasRenderingContext2D, _pathData: string) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const canvasRect = canvas.getBoundingClientRect();
+
+    // Clear canvas (in CSS pixel space — context is already DPR-scaled)
+    ctx.clearRect(0, 0, canvasRect.width, canvasRect.height);
+
+    // Parse and draw SVG path as guide (simplified - draws it in light gray)
+    ctx.strokeStyle = 'rgba(180, 83, 9, 0.2)'; // Faint terracotta
+    ctx.lineWidth = 6;
+
+    // Simple path rendering (this is a mock - real SVG path parsing is complex)
+    // For demo purposes, just draw the guide as styled text
+    ctx.font = 'bold 120px serif';
+    ctx.fillStyle = 'rgba(180, 83, 9, 0.15)';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(currentLetter.aksara, canvasRect.width / 2, canvasRect.height / 2);
+  }, [currentLetter.aksara]);
+
   // Initialize canvas
   useEffect(() => {
     const ctx = setupCanvas();
@@ -60,29 +82,8 @@ export function WritingPractice() {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('orientationchange', handleResize);
     };
-  }, [currentLetter]);
+  }, [currentLetter, drawGuidePath]);
 
-  const drawGuidePath = (ctx: CanvasRenderingContext2D, _pathData: string) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const canvasRect = canvas.getBoundingClientRect();
-
-    // Clear canvas (in CSS pixel space — context is already DPR-scaled)
-    ctx.clearRect(0, 0, canvasRect.width, canvasRect.height);
-
-    // Parse and draw SVG path as guide (simplified - draws it in light gray)
-    ctx.strokeStyle = 'rgba(180, 83, 9, 0.2)'; // Faint terracotta
-    ctx.lineWidth = 6;
-
-    // Simple path rendering (this is a mock - real SVG path parsing is complex)
-    // For demo purposes, just draw the guide as styled text
-    ctx.font = 'bold 120px serif';
-    ctx.fillStyle = 'rgba(180, 83, 9, 0.15)';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(currentLetter.aksara, canvasRect.width / 2, canvasRect.height / 2);
-  };
 
   const startDrawing = (x: number, y: number) => {
     if (!contextRef.current || !canvasRef.current) return;
@@ -91,7 +92,7 @@ export function WritingPractice() {
     const rect = canvasRef.current.getBoundingClientRect();
     const ctx = contextRef.current;
 
-    ctx.strokeStyle = 'var(--color-terracotta)';
+    ctx.strokeStyle = '#0066CC';
     ctx.lineWidth = 4;
     ctx.beginPath();
     ctx.moveTo(x - rect.left, y - rect.top);

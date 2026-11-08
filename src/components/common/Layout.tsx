@@ -3,6 +3,7 @@ import type { Gate } from '../../types';
 import { useI18n } from '../../context/I18nContext';
 import { Navbar } from './Navbar';
 import { LanguageToggle } from './LanguageToggle';
+import { Settings } from 'lucide-react';
 
 interface LayoutProps {
   activeGate: Gate;
@@ -21,6 +22,8 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
         return t('Village Administration', 'Administrasi Desa');
       case 'pelestari':
         return t('Cultural Preservation', 'Pelestarian Budaya');
+      case 'admin':
+        return t('Map Coordinates & Settings', 'Kordinat Peta & Pengaturan');
     }
   };
 
@@ -79,7 +82,33 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
             {getSubtitle(activeGate)}
           </p>
         </div>
-        <LanguageToggle />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            type="button"
+            onClick={() => onGateChange(activeGate === 'admin' ? 'wisatawan' : 'admin')}
+            aria-label={activeGate === 'admin' ? t('Back to Tourist Map', 'Kembali ke Peta Wisatawan') : t('Admin Map Settings', 'Pengaturan Peta Admin')}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              padding: '6px 12px',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--color-border)',
+              background: activeGate === 'admin' ? 'var(--color-primary-light)' : 'transparent',
+              color: activeGate === 'admin' ? 'var(--color-primary)' : 'var(--color-text)',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            <Settings size={14} />
+            <span className="hidden sm:inline">
+              {activeGate === 'admin' ? t('View Map', 'Lihat Peta') : t('Admin Map', 'Admin Peta')}
+            </span>
+          </button>
+          <LanguageToggle />
+        </div>
       </header>
 
       {/* Main content — let Lenis own the page scroll; do NOT set overflowY

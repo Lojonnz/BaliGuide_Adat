@@ -1,5 +1,5 @@
 import { useI18n } from '../../context/I18nContext';
-import { temples } from '../../data';
+import { useTempleLocations } from '../../services/locationStorage';
 import type { TempleZone } from '../../types';
 import { Radio } from 'lucide-react';
 import { SpotlightCard, PulseGlow } from '../common/PremiumCards';
@@ -11,6 +11,7 @@ interface Props {
 
 export function GeofenceHeader({ onSimulateEntry }: Props) {
   const { t } = useI18n();
+  const { temples } = useTempleLocations();
 
   const statusColors = {
     open: 'var(--color-open)',

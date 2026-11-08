@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, Fragment } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { MapContainer, TileLayer, Circle, Marker, Popup, useMap } from 'react-leaflet';
-import { temples } from '../../data';
+import { useTempleLocations } from '../../services/locationStorage';
 import { useI18n } from '../../context/I18nContext';
 import { getWilayahAturan, getAturanByKabupaten, type WilayahAturan, type AturanAdat } from '../../services/api';
 import L from 'leaflet';
@@ -49,6 +49,7 @@ function MapController({ selectedWilayah }: { selectedWilayah: WilayahAturan | n
 
 export function TempleMap() {
   const { t, lang } = useI18n();
+  const { temples } = useTempleLocations();
   const legendRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
@@ -86,16 +87,13 @@ export function TempleMap() {
 
   // Fetch aturan ketika wilayah dipilih
   useEffect(() => {
-    if (!selectedWilayah) {
-      setAturanList([]);
-      setShowAturanPanel(false);
-      return;
-    }
+    if (!selectedWilayah) return;
+    const currentWilayah = selectedWilayah;
 
     async function fetchAturan() {
       try {
         setLoading(true);
-        const aturan = await getAturanByKabupaten(selectedWilayah.kabupaten);
+        const aturan = await getAturanByKabupaten(currentWilayah.kabupaten);
         setAturanList(aturan);
         setShowAturanPanel(true);
       } catch (error) {
@@ -171,7 +169,7 @@ export function TempleMap() {
 
         {/* Temple markers & zones */}
         {temples.map((temple) => (
-          <div key={temple.id}>
+          <Fragment key={temple.id}>
             {/* Render zones from outermost to innermost */}
             {[...temple.zones].reverse().map((zone, idx) => (
               <Circle
@@ -206,7 +204,7 @@ export function TempleMap() {
                 </div>
               </Popup>
             </Marker>
-          </div>
+          </Fragment>
         ))}
 
         {/* Wilayah markers for aturan adat */}
@@ -232,12 +230,23 @@ export function TempleMap() {
                 </div>
                 <div
                   style={{
-                    fontSize: '14px',
-                    color: 'var(--color-text-muted)',
-                    marginBottom: '8px',
+                    fontSize: '13px',
+                    color: 'var(--color-text)',
+                    marginBottom: '4px',
+                    fontWeight: 500,
                   }}
                 >
                   {wilayah.jumlah_aturan} {t('traditional rules', 'aturan adat')}
+                </div>
+                <div
+                  style={{
+                    fontSize: '11px',
+                    fontFamily: 'monospace',
+                    color: 'var(--color-text-muted)',
+                    marginBottom: '10px',
+                  }}
+                >
+                  GPS: {wilayah.coordinates.lat.toFixed(4)}, {wilayah.coordinates.lng.toFixed(4)}
                 </div>
                 <button
                   onClick={() => handleWilayahClick(wilayah)}
@@ -301,6 +310,22 @@ export function TempleMap() {
               </span>
             </div>
           ))}
+          <div className="flex items-center gap-2 pt-1 border-t border-[var(--color-border)]">
+            <div
+              className="flex-shrink-0 rounded-full flex items-center justify-center text-white"
+              style={{
+                width: '16px',
+                height: '16px',
+                background: '#8B5CF6',
+                fontSize: '10px',
+              }}
+            >
+              •
+            </div>
+            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
+              {t('Adat Region (Database)', 'Wilayah Adat (Database)')}
+            </span>
+          </div>
           <div style={{ borderTop: '1px solid var(--color-border)', marginTop: '8px', paddingTop: '8px' }}>
             <div className="flex items-center gap-2">
               <FileText size={16} style={{ color: 'var(--color-primary)' }} />

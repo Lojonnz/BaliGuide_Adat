@@ -4,7 +4,7 @@ import { getAturanAdat, getKategoriAdat, type AturanAdat, type KategoriAdat } fr
 import { ChevronRight, FileText, MapPin, Tag, Loader2, AlertCircle } from 'lucide-react';
 
 export function AturanList() {
-  const { t, lang } = useI18n();
+  const { t } = useI18n();
   const [aturan, setAturan] = useState<AturanAdat[]>([]);
   const [kategori, setKategori] = useState<KategoriAdat[]>([]);
   const [selectedKategori, setSelectedKategori] = useState<number | null>(null);
@@ -12,20 +12,30 @@ export function AturanList() {
   const [error, setError] = useState<string | null>(null);
   const [selectedAturan, setSelectedAturan] = useState<AturanAdat | null>(null);
 
-  // Fetch data on mount
+  // Fetch kategori on mount
   useEffect(() => {
-    async function fetchData() {
+    async function fetchKategori() {
+      try {
+        const response = await getKategoriAdat();
+        setKategori(response.data);
+      } catch (err) {
+        console.error('Failed to fetch categories:', err);
+      }
+    }
+    fetchKategori();
+  }, []);
+
+  // Fetch aturan (all or filtered by category)
+  useEffect(() => {
+    async function fetchAturan() {
       try {
         setLoading(true);
         setError(null);
-
-        const [aturanResponse, kategoriResponse] = await Promise.all([
-          getAturanAdat({ limit: 50 }),
-          getKategoriAdat(),
-        ]);
-
-        setAturan(aturanResponse.data);
-        setKategori(kategoriResponse.data);
+        const response = await getAturanAdat({
+          kategori_id: selectedKategori ?? undefined,
+          limit: 50,
+        });
+        setAturan(response.data);
       } catch (err) {
         console.error('Failed to fetch data:', err);
         setError(err instanceof Error ? err.message : 'Failed to load data');
@@ -33,30 +43,7 @@ export function AturanList() {
         setLoading(false);
       }
     }
-
-    fetchData();
-  }, []);
-
-  // Filter by kategori
-  useEffect(() => {
-    if (selectedKategori === null) return;
-
-    async function fetchFiltered() {
-      try {
-        setLoading(true);
-        const response = await getAturanAdat({
-          kategori_id: selectedKategori,
-          limit: 50,
-        });
-        setAturan(response.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to filter data');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchFiltered();
+    fetchAturan();
   }, [selectedKategori]);
 
   if (loading) {
@@ -269,7 +256,7 @@ export function AturanList() {
                   <span>{selectedAturan.komunitas.nama}</span>
                 </div>
                 <div>
-                  {selectedAturan.wilayah.jenis}: {selectedAturan.wilayah.nama}
+                  {selectedAturan.wilayah.kecamatan}, {selectedAturan.wilayah.kabupaten}
                 </div>
               </div>
             </div>

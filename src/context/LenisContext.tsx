@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -28,7 +28,7 @@ interface LenisContextType {
 const LenisContext = createContext<LenisContextType>({ lenis: null, scrollToTop: () => {} });
 
 export function LenisProvider({ children }: { children: ReactNode }) {
-  const lenisRef = useRef<Lenis | null>(null);
+  const [lenis, setLenis] = useState<Lenis | null>(null);
 
   useEffect(() => {
     // Safeguard #1: syncTouch:false keeps touch on native scroll (no hijacking
@@ -56,8 +56,8 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       prevent: (node: HTMLElement) => node.closest('[data-lenis-prevent]') !== null,
     });
 
-    lenisRef.current = lenis;
     lenisInstance = lenis;
+    setLenis(lenis);
 
     // Connect Lenis to GSAP ScrollTrigger
     lenis.on('scroll', ScrollTrigger.update);
@@ -83,19 +83,20 @@ export function LenisProvider({ children }: { children: ReactNode }) {
       clearTimeout(t2);
       ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
       if (lenisInstance === lenis) lenisInstance = null;
+      setLenis(null);
     };
   }, []);
 
   const onScrollToTop = useCallback(() => {
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(0, { duration: 0.6 });
+    if (lenis) {
+      lenis.scrollTo(0, { duration: 0.6 });
     } else {
       window.scrollTo(0, 0);
     }
-  }, []);
+  }, [lenis]);
 
   return (
-    <LenisContext.Provider value={{ lenis: lenisRef.current, scrollToTop: onScrollToTop }}>
+    <LenisContext.Provider value={{ lenis, scrollToTop: onScrollToTop }}>
       {children}
     </LenisContext.Provider>
   );

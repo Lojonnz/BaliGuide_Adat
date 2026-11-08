@@ -1,4 +1,4 @@
-import { Map, Users, BookOpen } from 'lucide-react';
+import { Map, Users, BookOpen, Settings } from 'lucide-react';
 import type { Gate } from '../../types';
 import { useI18n } from '../../context/I18nContext';
 
@@ -14,6 +14,7 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
     { gate: 'wisatawan', icon: Map, labelEn: 'Tourist', labelId: 'Wisatawan' },
     { gate: 'krama', icon: Users, labelEn: 'Village', labelId: 'Krama' },
     { gate: 'pelestari', icon: BookOpen, labelEn: 'Preserver', labelId: 'Pelestari' },
+    { gate: 'admin', icon: Settings, labelEn: 'Admin Map', labelId: 'Admin Peta' },
   ];
 
   return (

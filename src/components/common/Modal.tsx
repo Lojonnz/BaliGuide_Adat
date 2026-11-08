@@ -33,7 +33,6 @@ export function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const previouslyFocusedRef = useRef<Element | null>(null);
-  const [render, setRender] = useState(false);
   const [visible, setVisible] = useState(false);
 
   // Lock body, trap focus, wire ESC; restore on unmount
@@ -41,8 +40,7 @@ export function Modal({
     previouslyFocusedRef.current = document.activeElement;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    setRender(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setVisible(true)));
+    const raf = requestAnimationFrame(() => setVisible(true));
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
@@ -72,6 +70,7 @@ export function Modal({
     return () => {
       document.body.style.overflow = prevOverflow;
       document.removeEventListener('keydown', onKey);
+      cancelAnimationFrame(raf);
       clearTimeout(t);
       if (previouslyFocusedRef.current instanceof HTMLElement) {
         previouslyFocusedRef.current.focus();
@@ -79,7 +78,6 @@ export function Modal({
     };
   }, [onClose]);
 
-  if (!render) return null;
 
   const backdropStyle: CSSProperties = {
     background: 'rgba(0,0,0,0.7)',
