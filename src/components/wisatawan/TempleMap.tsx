@@ -403,10 +403,16 @@ export function TempleMap() {
           )}
 
           {!loading && aturanList.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '40px 20px' }}>
+            <div style={{ textAlign: 'center', padding: '36px 16px' }}>
               <FileText size={32} style={{ color: 'var(--color-text-muted)', margin: '0 auto 12px' }} />
-              <p style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>
-                {t('No rules found in this region', 'Tidak ada aturan di wilayah ini')}
+              <p style={{ color: 'var(--color-text)', fontWeight: 600, fontSize: '14px', marginBottom: '6px' }}>
+                {t('No rules registered for this region', 'Belum ada aturan di wilayah ini')}
+              </p>
+              <p style={{ color: 'var(--color-text-muted)', fontSize: '12px', lineHeight: 1.5 }}>
+                {t(
+                  'Currently rules in db_adatnusa are available for Bangli, Tabanan, Buleleng, and Karangasem. See all 16 rules below the map.',
+                  'Saat ini data aturan di db_adatnusa tersedia untuk Bangli, Tabanan, Buleleng, dan Karangasem. Lihat seluruh 16 aturan pada daftar di bawah peta.'
+                )}
               </p>
             </div>
           )}

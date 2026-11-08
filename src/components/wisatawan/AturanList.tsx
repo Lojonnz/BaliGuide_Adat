@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useI18n } from '../../context/I18nContext';
 import { getAturanAdat, getKategoriAdat, type AturanAdat, type KategoriAdat } from '../../services/api';
-import { ChevronRight, FileText, MapPin, Tag, Loader2, AlertCircle } from 'lucide-react';
+import { ChevronRight, FileText, MapPin, Tag, Loader2, AlertCircle, Search } from 'lucide-react';
 
 export function AturanList() {
   const { t } = useI18n();
@@ -11,6 +11,7 @@ export function AturanList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAturan, setSelectedAturan] = useState<AturanAdat | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch kategori on mount
   useEffect(() => {
@@ -79,68 +80,109 @@ export function AturanList() {
 
   return (
     <div>
-      {/* Kategori Filter */}
-      <div className="mb-6">
-        <h3
-          className="editorial-heading"
-          style={{ fontSize: '16px', marginBottom: '12px', color: 'var(--color-text)' }}
-        >
-          {t('Filter by Category', 'Filter berdasarkan Kategori')}
-        </h3>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => setSelectedKategori(null)}
-            className="glass-card"
-            style={{
-              padding: '8px 16px',
-              border: selectedKategori === null ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-              background: selectedKategori === null ? 'var(--color-primary-light)' : 'transparent',
-              color: selectedKategori === null ? 'var(--color-primary)' : 'var(--color-text)',
-              fontSize: '13px',
-              fontWeight: 600,
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-            }}
+      {/* Search and Kategori Filter */}
+      <div className="mb-6 space-y-4">
+        <div className="relative">
+          <Search
+            size={18}
+            className="absolute left-3.5 top-1/2 -translate-y-1/2"
+            style={{ color: 'var(--color-text-muted)' }}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t(
+              'Search traditional rules, villages, regencies...',
+              'Cari aturan adat, desa adat, kabupaten...'
+            )}
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm glass-card border border-[var(--color-border)] focus:outline-none focus:border-[var(--color-primary)] text-[var(--color-text)] transition-all"
+          />
+        </div>
+
+        <div>
+          <h3
+            className="editorial-heading"
+            style={{ fontSize: '15px', marginBottom: '10px', color: 'var(--color-text)' }}
           >
-            {t('All', 'Semua')} ({aturan.length})
-          </button>
-          {kategori.map(kat => (
+            {t('Filter by Category', 'Filter berdasarkan Kategori')}
+          </h3>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
             <button
-              key={kat.id}
-              onClick={() => setSelectedKategori(kat.id)}
+              onClick={() => setSelectedKategori(null)}
               className="glass-card"
               style={{
                 padding: '8px 16px',
-                border: selectedKategori === kat.id ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
-                background: selectedKategori === kat.id ? 'var(--color-primary-light)' : 'transparent',
-                color: selectedKategori === kat.id ? 'var(--color-primary)' : 'var(--color-text)',
+                borderRadius: '999px',
+                border: selectedKategori === null ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                background: selectedKategori === null ? 'var(--color-primary-light)' : 'transparent',
+                color: selectedKategori === null ? 'var(--color-primary)' : 'var(--color-text)',
                 fontSize: '13px',
                 fontWeight: 600,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
               }}
             >
-              {kat.nama} ({kat.jumlah_aturan})
+              {t('All', 'Semua')}
             </button>
-          ))}
+            {kategori.map((kat) => (
+              <button
+                key={kat.id}
+                onClick={() => setSelectedKategori(kat.id)}
+                className="glass-card"
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '999px',
+                  border: selectedKategori === kat.id ? '2px solid var(--color-primary)' : '1px solid var(--color-border)',
+                  background: selectedKategori === kat.id ? 'var(--color-primary-light)' : 'transparent',
+                  color: selectedKategori === kat.id ? 'var(--color-primary)' : 'var(--color-text)',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                {kat.nama} ({kat.jumlah_aturan})
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Aturan List */}
-      {aturan.length === 0 ? (
-        <div className="glass-card" style={{ padding: '32px', textAlign: 'center' }}>
-          <FileText className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-text-muted)' }} />
-          <p style={{ color: 'var(--color-text-muted)' }}>
-            {t('No traditional rules found', 'Tidak ada aturan adat ditemukan')}
-          </p>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: '16px' }}>
-          {aturan.map(rule => (
-            <button
-              key={rule.id}
-              onClick={() => setSelectedAturan(rule)}
-              className="glass-card"
+      {/* Aturan List filtered by searchQuery */}
+      {(() => {
+        const q = searchQuery.toLowerCase().trim();
+        const displayedAturan = aturan.filter((rule) => {
+          if (!q) return true;
+          return (
+            rule.nama.toLowerCase().includes(q) ||
+            rule.ringkasan.toLowerCase().includes(q) ||
+            rule.komunitas.nama.toLowerCase().includes(q) ||
+            rule.wilayah.kabupaten.toLowerCase().includes(q) ||
+            rule.wilayah.kecamatan.toLowerCase().includes(q) ||
+            rule.kategori.nama.toLowerCase().includes(q)
+          );
+        });
+
+        if (displayedAturan.length === 0) {
+          return (
+            <div className="glass-card" style={{ padding: '32px', textAlign: 'center' }}>
+              <FileText className="w-12 h-12 mx-auto mb-3" style={{ color: 'var(--color-text-muted)' }} />
+              <p style={{ color: 'var(--color-text-muted)' }}>
+                {t('No traditional rules found', 'Tidak ada aturan adat ditemukan')}
+              </p>
+            </div>
+          );
+        }
+
+        return (
+          <div style={{ display: 'grid', gap: '16px' }}>
+            {displayedAturan.map((rule) => (
+              <button
+                key={rule.id}
+                onClick={() => setSelectedAturan(rule)}
+                className="glass-card"
               style={{
                 padding: '20px',
                 textAlign: 'left',
@@ -199,8 +241,9 @@ export function AturanList() {
               </div>
             </button>
           ))}
-        </div>
-      )}
+          </div>
+        );
+      })()}
 
       {/* Detail Modal */}
       {selectedAturan && (

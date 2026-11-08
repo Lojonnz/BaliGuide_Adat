@@ -4,6 +4,8 @@
  */
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost/baliguide-api';
+import { FALLBACK_ATURAN_DATA, FALLBACK_KATEGORI_DATA } from '../data/aturan_fallback';
+
 
 export interface AturanAdat {
   id: number;
@@ -131,7 +133,38 @@ export async function getAturanAdat(params?: {
   if (params?.offset) query.set('offset', params.offset.toString());
 
   const endpoint = `/aturan.php${query.toString() ? '?' + query.toString() : ''}`;
-  return fetchAPI<AturanResponse>(endpoint);
+  try {
+    const response = await fetchAPI<AturanResponse>(endpoint);
+    if (response && response.success && response.data && response.data.length > 0) {
+      return response;
+    }
+  } catch (error) {
+    console.warn('Backend API offline, using fallback aturan data:', error);
+  }
+
+  // Fallback filtering from embedded db_adatnusa seed data
+  let filtered = [...FALLBACK_ATURAN_DATA];
+  if (params?.kategori_id) {
+    filtered = filtered.filter(a => a.kategori.id === params.kategori_id);
+  }
+  if (params?.komunitas_id) {
+    filtered = filtered.filter(a => a.komunitas.id === params.komunitas_id);
+  }
+  const total = filtered.length;
+  const offset = params?.offset || 0;
+  const limit = params?.limit || 50;
+  filtered = filtered.slice(offset, offset + limit);
+
+  return {
+    success: true,
+    data: filtered,
+    pagination: {
+      total,
+      limit,
+      offset,
+      count: filtered.length,
+    },
+  };
 }
 
 /**
@@ -145,7 +178,19 @@ export async function getKomunitasAdat(): Promise<KomunitasResponse> {
  * Get Kategori Adat (Categories)
  */
 export async function getKategoriAdat(): Promise<KategoriResponse> {
-  return fetchAPI<KategoriResponse>('/kategori.php');
+  try {
+    const response = await fetchAPI<KategoriResponse>('/kategori.php');
+    if (response && response.success && response.data && response.data.length > 0) {
+      return response;
+    }
+  } catch (error) {
+    console.warn('Backend API offline, using fallback kategori data:', error);
+  }
+  return {
+    success: true,
+    data: FALLBACK_KATEGORI_DATA,
+    count: FALLBACK_KATEGORI_DATA.length,
+  };
 }
 
 /**
@@ -401,7 +446,11 @@ export async function updateWilayahCoordinates(
 export async function getAturanByKabupaten(kabupaten: string): Promise<AturanAdat[]> {
   try {
     const response = await getAturanAdat({ limit: 100 });
-    return response.data.filter(a => a.wilayah.kabupaten === kabupaten);
+    const target = kabupaten.replace('Kabupaten ', '').replace('Kota ', '').trim().toLowerCase();
+    return response.data.filter(a => {
+      const current = a.wilayah.kabupaten.replace('Kabupaten ', '').replace('Kota ', '').trim().toLowerCase();
+      return current.includes(target) || target.includes(current);
+    });
   } catch (error) {
     console.warn('Failed to load aturan for kabupaten:', kabupaten, error);
     return [];
