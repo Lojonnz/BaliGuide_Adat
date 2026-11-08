@@ -1,4 +1,4 @@
-import { useState, useId, useEffect, useRef } from 'react';
+import React, { useState, useId, useEffect, useRef } from 'react';
 import {
   MapContainer,
   TileLayer,
@@ -416,20 +416,37 @@ export function MapCoordinateManager({ onWilayahUpdated }: MapCoordinateManagerP
                 }}
               />
 
-              {/* Highlight Circle around currently edited coordinates */}
-              {selectedWilayah && !isNaN(lat) && !isNaN(lng) && (
-                <Circle
-                  center={[lat, lng]}
-                  radius={4000}
-                  pathOptions={{
-                    color: '#ea580c',
-                    fillColor: '#ea580c',
-                    fillOpacity: 0.15,
-                    weight: 2,
-                    dashArray: '4, 6',
-                  }}
-                />
-              )}
+              {/* Concentric Geofencing Zones (Perimeter, Nista Mandala, Madya Mandala, Utama Mandala) for all wilayah / selected point */}
+              {wilayahList.map((wilayah) => {
+                const isSelected = selectedWilayah?.id === wilayah.id;
+                const mLat = isSelected ? lat : (wilayah.latitude ?? -8.4095);
+                const mLng = isSelected ? lng : (wilayah.longitude ?? 115.1889);
+                if (isNaN(mLat) || isNaN(mLng)) return null;
+                return (
+                  <React.Fragment key={`geofence-admin-${wilayah.id}`}>
+                    <Circle
+                      center={[mLat, mLng]}
+                      radius={3500}
+                      pathOptions={{ color: '#059669', fillColor: '#059669', fillOpacity: isSelected ? 0.12 : 0.06, weight: isSelected ? 1.5 : 1 }}
+                    />
+                    <Circle
+                      center={[mLat, mLng]}
+                      radius={2300}
+                      pathOptions={{ color: '#F59E0B', fillColor: '#F59E0B', fillOpacity: isSelected ? 0.18 : 0.09, weight: isSelected ? 1.5 : 1 }}
+                    />
+                    <Circle
+                      center={[mLat, mLng]}
+                      radius={1200}
+                      pathOptions={{ color: '#D97706', fillColor: '#D97706', fillOpacity: isSelected ? 0.25 : 0.12, weight: isSelected ? 1.5 : 1 }}
+                    />
+                    <Circle
+                      center={[mLat, mLng]}
+                      radius={400}
+                      pathOptions={{ color: '#DC2626', fillColor: '#DC2626', fillOpacity: isSelected ? 0.35 : 0.16, weight: isSelected ? 2 : 1.2 }}
+                    />
+                  </React.Fragment>
+                );
+              })}
 
               {/* Wilayah Markers */}
               {wilayahList.map((wilayah) => {

@@ -13,10 +13,10 @@ export interface AturanAdat {
   slug: string;
   ringkasan: string;
   isi: string;
-  tujuan?: string;
-  penerapan?: string;
-  konsekuensi?: string;
-  tanggal_berlaku: string | null;
+  tujuan?: string | null;
+  penerapan?: string | null;
+  konsekuensi?: string | null;
+  tanggal_berlaku?: string | null;
   status_berlaku: string;
   status_verifikasi: string;
   created_at: string;

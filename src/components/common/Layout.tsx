@@ -3,6 +3,7 @@ import type { Gate } from '../../types';
 import { useI18n } from '../../context/I18nContext';
 import { Navbar } from './Navbar';
 import { LanguageToggle } from './LanguageToggle';
+import { DarkModeToggle } from './DarkModeToggle';
 import { Settings } from 'lucide-react';
 
 interface LayoutProps {
@@ -107,6 +108,7 @@ export function Layout({ activeGate, onGateChange, children }: LayoutProps) {
               {activeGate === 'admin' ? t('View Map', 'Lihat Peta') : t('Admin Map', 'Admin Peta')}
             </span>
           </button>
+          <DarkModeToggle />
           <LanguageToggle />
         </div>
       </header>

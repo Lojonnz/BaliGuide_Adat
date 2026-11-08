@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, useMap } from 'react-leaflet';
+import { useTempleLocations } from '../../services/locationStorage';
 import { useI18n } from '../../context/I18nContext';
 import { getWilayahAturan, getAturanByKabupaten, type WilayahAturan, type AturanAdat } from '../../services/api';
 import L from 'leaflet';
@@ -53,6 +54,7 @@ export function TempleMap() {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<L.Map | null>(null);
 
+  const { temples } = useTempleLocations();
   const [wilayahList, setWilayahList] = useState<WilayahAturan[]>([]);
   const [selectedWilayah, setSelectedWilayah] = useState<WilayahAturan | null>(null);
   const [aturanList, setAturanList] = useState<AturanAdat[]>([]);
@@ -161,16 +163,73 @@ export function TempleMap() {
 
         <MapController selectedWilayah={selectedWilayah} />
 
-        {/* Wilayah markers for aturan adat */}
-        {wilayahList.map((wilayah) => (
-          <Marker
-            key={wilayah.kabupaten}
-            position={[wilayah.coordinates.lat, wilayah.coordinates.lng]}
-            icon={aturanIcon}
-            eventHandlers={{
-              click: () => handleWilayahClick(wilayah),
-            }}
-          >
+        {/* Temple Zones & Markers (Perimeter, Nista Mandala, Madya Mandala, Utama Mandala) */}
+        {temples.map((temple) => (
+          <React.Fragment key={temple.id}>
+            {temple.zones.map((zone, zIdx) => (
+              <Circle
+                key={`${temple.id}-zone-${zIdx}`}
+                center={[temple.lat, temple.lng]}
+                radius={zone.radius}
+                pathOptions={{
+                  color: zone.color,
+                  fillColor: zone.color,
+                  fillOpacity: zone.opacity,
+                  weight: 1.5,
+                }}
+              />
+            ))}
+            <Marker position={[temple.lat, temple.lng]} icon={aturanIcon}>
+              <Popup>
+                <div style={{ minWidth: '170px' }}>
+                  <strong className="text-base font-semibold" style={{ color: 'var(--color-text)' }}>
+                    {temple.name}
+                  </strong>
+                  <div className="text-xs text-[var(--color-text-muted)] mt-1">
+                    Status: <span className="font-semibold uppercase">{temple.status}</span>
+                  </div>
+                  <div className="text-xs font-mono text-[var(--color-text-muted)] mt-1">
+                    GPS: {temple.lat.toFixed(4)}, {temple.lng.toFixed(4)}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          </React.Fragment>
+        ))}
+
+        {/* Wilayah markers & concentric geofence zones for db_adatnusa */}
+        {wilayahList.map((wilayah) => {
+          const wLat = wilayah.coordinates.lat;
+          const wLng = wilayah.coordinates.lng;
+          const wilayahZones = [
+            { name: 'Perimeter', color: '#059669', opacity: 0.12, radius: 3500 },
+            { name: 'Nista Mandala', color: '#F59E0B', opacity: 0.18, radius: 2400 },
+            { name: 'Madya Mandala', color: '#D97706', opacity: 0.25, radius: 1300 },
+            { name: 'Utama Mandala', color: '#DC2626', opacity: 0.35, radius: 450 },
+          ];
+          return (
+            <React.Fragment key={wilayah.kabupaten}>
+              {wilayahZones.map((z, idx) => (
+                <Circle
+                  key={`${wilayah.kabupaten}-z-${idx}`}
+                  center={[wLat, wLng]}
+                  radius={z.radius}
+                  pathOptions={{
+                    color: z.color,
+                    fillColor: z.color,
+                    fillOpacity: z.opacity,
+                    weight: 1.2,
+                    dashArray: '3, 5',
+                  }}
+                />
+              ))}
+              <Marker
+                position={[wLat, wLng]}
+                icon={aturanIcon}
+                eventHandlers={{
+                  click: () => handleWilayahClick(wilayah),
+                }}
+              >
             <Popup>
               <div style={{ minWidth: '180px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
@@ -220,8 +279,10 @@ export function TempleMap() {
                 </button>
               </div>
             </Popup>
-          </Marker>
-        ))}
+              </Marker>
+            </React.Fragment>
+          );
+        })}
       </MapContainer>
 
       {/* Legend Overlay with Glass Card */}
@@ -231,7 +292,7 @@ export function TempleMap() {
         className="glass-card absolute bottom-5 right-5 p-4 rounded-xl"
         style={{
           zIndex: 1000,
-          minWidth: '220px',
+          minWidth: '240px',
           maxWidth: 'calc(100vw - 40px)',
         }}
       >
@@ -239,35 +300,35 @@ export function TempleMap() {
           className="text-sm font-bold mb-3"
           style={{ color: 'var(--color-text)' }}
         >
-          {t('Map Legend', 'Legenda Peta')}
+          {t('Geofence & Map Legend', 'Legenda Peta & Geofence')}
         </h4>
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2.5">
-            <div
-              className="flex-shrink-0 rounded-full flex items-center justify-center text-white"
-              style={{
-                width: '18px',
-                height: '18px',
-                background: '#4f46e5',
-                boxShadow: '0 0 10px rgba(79, 70, 229, 0.4)',
-                fontSize: '11px',
-              }}
-            >
-              📍
-            </div>
+            <div className="w-3.5 h-3.5 rounded-full" style={{ background: '#DC2626' }} />
             <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
-              {t('Adat Wilayah (db_adatnusa)', 'Wilayah Adat (db_adatnusa)')}
+              {t('Utama Mandala (Core Sacred)', 'Utama Mandala (Inti Suci)')}
             </span>
           </div>
-          <div className="flex items-center gap-2.5 pt-1.5 border-t border-[var(--color-border)]">
-            <FileText size={16} style={{ color: 'var(--color-primary)' }} />
-            <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
-              {t('Click marker to view local rules', 'Klik marker untuk melihat aturan')}
+          <div className="flex items-center gap-2.5">
+            <div className="w-3.5 h-3.5 rounded-full" style={{ background: '#D97706' }} />
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+              {t('Madya Mandala (Middle Courtyard)', 'Madya Mandala (Jaba Tengah)')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-3.5 h-3.5 rounded-full" style={{ background: '#F59E0B' }} />
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+              {t('Nista Mandala (Outer Courtyard)', 'Nista Mandala (Jaba Jero)')}
+            </span>
+          </div>
+          <div className="flex items-center gap-2.5">
+            <div className="w-3.5 h-3.5 rounded-full" style={{ background: '#059669' }} />
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>
+              {t('Perimeter (Buffer Zone)', 'Perimeter (Zona Penyangga)')}
             </span>
           </div>
         </div>
       </div>
-
       {/* Aturan Panel - Sidebar untuk list aturan di wilayah yang dipilih */}
       {showAturanPanel && (
         <div

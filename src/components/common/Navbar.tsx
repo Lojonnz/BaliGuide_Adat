@@ -1,6 +1,7 @@
 import { Map, Users, BookOpen, Settings } from 'lucide-react';
 import type { Gate } from '../../types';
 import { useI18n } from '../../context/I18nContext';
+import { DarkModeToggle } from './DarkModeToggle';
 
 interface NavbarProps {
   activeGate: Gate;
@@ -22,12 +23,13 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
       className="navbar-responsive"
       aria-label={t('Main navigation', 'Navigasi utama')}
       style={{
-        background: 'rgba(255, 255, 255, 0.8)',
+        background: 'var(--glass-bg)',
         backdropFilter: 'blur(12px)',
         WebkitBackdropFilter: 'blur(12px)',
         borderTop: '1px solid var(--color-border)',
         padding: '8px 16px',
         display: 'flex',
+        alignItems: 'center',
         justifyContent: 'space-around',
         gap: '8px',
         zIndex: 100,
@@ -48,11 +50,8 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
               gap: '4px',
               padding: '8px',
               border: 'none',
-              background: isActive ? 'var(--color-sand)' : 'transparent',
+              background: isActive ? 'var(--color-primary-light)' : 'transparent',
               color: isActive ? 'var(--color-primary)' : 'var(--color-text-muted)',
-              cursor: 'pointer',
-              borderRadius: 'var(--radius-sm)',
-              transition: 'all 0.2s ease',
               position: 'relative',
               minHeight: '44px',
               minWidth: '44px',
@@ -69,7 +68,7 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
                   transform: 'translateX(-50%)',
                   width: '32px',
                   height: '3px',
-                  background: 'var(--color-terracotta)',
+                  background: 'var(--color-primary)',
                   borderRadius: '0 0 3px 3px',
                 }}
               />
@@ -93,6 +92,10 @@ export function Navbar({ activeGate, onGateChange }: NavbarProps) {
           </button>
         );
       })}
+      {/* Dark mode toggle also embedded directly in Navbar for mobile/desktop convenience */}
+      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: '4px', borderLeft: '1px solid var(--color-border)' }}>
+        <DarkModeToggle />
+      </div>
     </nav>
   );
 }
